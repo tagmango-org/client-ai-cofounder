@@ -13,6 +13,8 @@ import ConversationSidebar from '../components/conversations/ConversationSidebar
 import CopyButton from '../components/chat/CopyButton';
 import DiscoveryProgressTracker from '../components/chat/DiscoveryProgressTracker';
 import { createPageUrl } from '@/utils';
+import { createOptimizedSchema, createCompleteSchema, analyzeContext } from '@/utils/llmSchemas';
+import { useResponseCache } from '@/utils/responseCache';
 import PhaseCompletionCelebration from '../components/chat/PhaseCompletionCelebration';
 import MessageBubble from '../components/chat/MessageBubble';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -470,6 +472,7 @@ export default function Chat() {
     const [initialLoading, setInitialLoading] = useState(true);
     
     const { currentAppUser, appUserLoading, setCurrentAppUser } = useAppUser();
+    const { get: getCachedResponse, set: setCachedResponse } = useResponseCache();
 
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [thinkingMessage, setThinkingMessage] = useState(thinkingPhrases[0]);
@@ -971,237 +974,47 @@ Coach (in JSON format):`;
         });
 
         try {
+            const startTime = performance.now(); // Track response time
             const historyForPrompt = [...currentMessages, userMessageForDb];
-            const fullPrompt = buildContextualPrompt(userMessageContent, historyForPrompt, (discoveryState.answers || {}));
+            
+            // Check cache first for faster responses
+            const cachedResponse = getCachedResponse(
+                userMessageContent, 
+                historyForPrompt, 
+                currentAppUser?.profile
+            );
+            
+            let response;
+            if (cachedResponse) {
+                // Use cached response for instant feedback
+                response = cachedResponse;
+                const cacheTime = performance.now() - startTime;
+                console.log(`🚀 INSTANT: Cached response delivered in ${cacheTime.toFixed(2)}ms`);
+            } else {
+                    // Generate new response
+                const fullPrompt = buildContextualPrompt(userMessageContent, historyForPrompt, (discoveryState.answers || {}));
 
-            const llmPayload = {
-                prompt: fullPrompt,
-                response_json_schema: {
-                    "type": "object",
-                    "properties": {
-                        "ai_response_text": {
-                            "type": "string",
-                            "description": "The conversational text response to be shown to the user. This should always be populated."
-                        },
-                        "action": {
-                            "type": ["string", "null"],
-                            "description": "A special action to be performed by the frontend, like 'redirect_to_profile'."
-                        },
-                        "course_creation_data": {
-                            "type": ["object", "null"],
-                            "description": "The structured course data. IMPORTANT: Only populate this field after the full consultation process is complete and the user has agreed to have the course created. Otherwise, this should be null.",
-                            "properties": {
-                                "title": { "type": "string" },
-                                "description": {
-                                    "type": "string",
-                                    "description": "A crisp, engaging summary of the entire course."
-                                },
-                                "modules": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "title": { "type": "string" },
-                                            "chapters": {
-                                                "type": "array",
-                                                "items": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "title": { "type": "string" },
-                                                        "description": {
-                                                            "type": "string",
-                                                            "description": "A concise description for this specific chapter."
-                                                        },
-                                                        "content": { "type": "string" },
-                                                        "totalDuration": { "type": "number" },
-                                                        "contentType": { "type": "string", "enum": ["article", "video", "audio"] }
-                                                    },
-                                                    "required": ["title", "description", "content", "totalDuration", "contentType"]
-                                                }
-                                            }
-                                        },
-                                        "required": ["title", "chapters"]
-                                    }
-                                }
-                            },
-                            "required": ["title", "description", "modules"]
-                        },
-                        "coupon_creation_data": {
-                            "type": ["object", "null"],
-                            "description": "The structured coupon data. IMPORTANT: Only populate this field after the full consultation process is complete and the user has agreed to have the coupon created. Otherwise, this should be null.",
-                            "properties": {
-                                "code": {
-                                    "type": "string",
-                                    "description": "Coupon code without spaces or special characters, only alphanumeric"
-                                },
-                                "startAt": {
-                                    "type": "string",
-                                    "description": "ISO format date string for when coupon becomes active"
-                                },
-                                "validTill": {
-                                    "type": "string",
-                                    "description": "ISO format date string for when coupon expires, must be after startAt and different from startAt"
-                                },
-                                "type": {
-                                    "type": "string",
-                                    "enum": ["creator_discount_coupon", "mango_coupon"],
-                                    "description": "creator_discount_coupon uses flatDiscount, mango_coupon type uses percentageDiscount"
-                                },
-                                "flatDiscount": {
-                                    "type": ["number", "null"],
-                                    "format": "integer",
-                                    "description": "Fixed amount discount, use with creator_discount_coupon type only"
-                                },
-                                "percentageDiscount": {
-                                    "type": ["number", "null"],
-                                    "format": "integer",
-                                    "description": "Percentage discount, use with mango_coupon type only"
-                                },
-                                "currency": {
-                                    "type": "string",
-                                    "enum": ["INR", "USD", "EUR"],
-                                    "description": "Currency for the discount",
-                                    "default": "INR"
-                                }
-                            },
-                            "required": ["code", "startAt", "validTill", "type", "currency"]
-                        },
-                        "post_creation_data": {
-                            "type": ["object", "null"],
-                            "description": "The structured post data. IMPORTANT: Only populate this field after the user has approved the caption and agreed to have the post created. Otherwise, this should be null.",
-                            "properties": {
-                                "caption": {
-                                    "type": "string",
-                                    "description": "The full text content of the feed post."
-                                }
-                            },
-                            "required": ["caption"]
-                        },
-                        "service_creation_data": {
-                            "type": ["object", "null"],
-                            "description": "The structured service page data. IMPORTANT: Only populate this field after the full consultation process is complete and the user has agreed to have the service page created. Otherwise, this should be null.",
-                            "properties": {
-                                "title": {
-                                    "type": "string",
-                                    "description": "The name of the service that users will see before paying."
-                                },
-                                "description": {
-                                    "type": "string",
-                                    "description": "A short description of what this service includes and what people get when they pay."
-                                },
-                                "recurringType": {
-                                    "type": "string",
-                                    "enum": ["onetime", "monthly", "quarterly", "halfyearly", "yearly"],
-                                    "description": "The payment frequency for this service."
-                                },
-                                "price": {
-                                    "type": "number",
-                                    "description": "The price amount for this service."
-                                },
-                                "currency": {
-                                    "type": "string",
-                                    "enum": ["INR", "USD", "EUR"],
-                                    "description": "The currency for the service price.",
-                                    "default": "INR"
-                                }
-                            },
-                            "required": ["title", "description", "recurringType", "price", "currency"]
-                        },
-                        "workshop_creation_data": {
-                            "type": ["object", "null"],
-                            "description": "The structured workshop data. IMPORTANT: Only populate this field after ALL MANDATORY FIELDS are collected (title, description, startDate, endDate, fromTime, timezone, timezoneName, duration, ongoingCallType, platform) and the user has agreed to have the workshop created. Otherwise, this should be null.",
-                            "properties": {
-                                "title": {
-                                    "type": "string",
-                                    "description": "The name of the workshop. REQUIRED."
-                                },
-                                "description": {
-                                    "type": "string",
-                                    "description": "A short description of what this workshop is about and the value participants will get. REQUIRED."
-                                },
-                                "startDate": {
-                                    "type": "string",
-                                    "description": "Workshop start date in YYYY-MM-DD format. REQUIRED."
-                                },
-                                "endDate": {
-                                    "type": "string",
-                                    "description": "Workshop end date in YYYY-MM-DD format. Must be same or after startDate. REQUIRED."
-                                },
-                                "fromTime": {
-                                    "type": "string",
-                                    "description": "Workshop start time in HH:mm 24-hour format. REQUIRED."
-                                },
-                                "ongoingCallType": {
-                                    "type": "string",
-                                    "enum": ["videocall", "webinar"],
-                                    "description": "The type of call session. REQUIRED."
-                                },
-                                "platform": {
-                                    "type": "string",
-                                    "enum": ["custom", "webinar", "meeting", "tagmango"],
-                                    "description": "The platform where the workshop will be hosted. REQUIRED."
-                                },
-                                "duration": {
-                                    "type": "number",
-                                    "description": "Workshop duration in minutes. Must be greater than 0. REQUIRED."
-                                },
-                                "timezone": {
-                                    "type": "string",
-                                    "description": "Timezone offset format like +05:30 or -08:00. REQUIRED. Default to +05:30 if not specified."
-                                },
-                                "timezoneName": {
-                                    "type": "string",
-                                    "description": "Timezone name like Asia/Kolkata or America/New_York. REQUIRED. Default to Asia/Kolkata if not specified."
-                                },
-                                "zoomMeetingType": {
-                                    "type": ["string", "null"],
-                                    "enum": ["meeting", "webinar", null],
-                                    "description": "Zoom meeting type, only relevant if platform involves Zoom."
-                                },
-                                "recurringType": {
-                                    "type": ["string", "null"],
-                                    "enum": ["weekly", "daily", null],
-                                    "description": "How often the workshop repeats, null for one-time workshops."
-                                },
-                                "repeatingDays": {
-                                    "type": ["array", "null"],
-                                    "items": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "maximum": 6
-                                    },
-                                    "description": "Array of days (0-6, Sunday to Saturday) when workshop occurs, null for one-time workshops."
-                                },
-                                "zoomWaitingList": {
-                                    "type": ["boolean", "null"],
-                                    "description": "Whether to enable waiting list for Zoom sessions."
-                                },
-                                "zoomRegistration": {
-                                    "type": ["boolean", "null"],
-                                    "description": "Whether to enable registration for Zoom sessions."
-                                },
-                                "enableRecordingZoomCall": {
-                                    "type": ["boolean", "null"],
-                                    "description": "Whether to enable recording for Zoom sessions."
-                                },
-                                "showGroupLinkForRecurringCall": {
-                                    "type": ["boolean", "null"],
-                                    "description": "Whether to show group link for recurring calls."
-                                },
-                                "mode": {
-                                    "type": ["string", "null"],
-                                    "enum": ["weekly", "daily", null],
-                                    "description": "Same as recurringType, used for compatibility."
-                                }
-                            },
-                            "required": ["title", "description", "startDate", "endDate", "fromTime", "ongoingCallType", "platform", "duration", "timezone", "timezoneName"]
-                        }
-                    },
-                    "required": ["ai_response_text"]
-                }
-            };
+                // Optimize schema based on conversation context
+                const context = analyzeContext(userMessageContent, historyForPrompt);
+                const responseSchema = createOptimizedSchema(context);
 
-            const response = await InvokeLLM(llmPayload);
+                const llmPayload = {
+                    prompt: fullPrompt,
+                    response_json_schema: responseSchema
+                };
+
+                response = await InvokeLLM(llmPayload);
+                const llmTime = performance.now() - startTime;
+                console.log(`⚡ NEW: LLM response generated in ${llmTime.toFixed(2)}ms`);
+                
+                // Cache the response for future use
+                setCachedResponse(
+                    userMessageContent, 
+                    historyForPrompt, 
+                    currentAppUser?.profile, 
+                    response
+                );
+            }
 
             if (response.action === 'redirect_to_profile') {
                 const redirectMessage = response.ai_response_text || "Redirecting to your profile...";
@@ -1221,22 +1034,46 @@ Coach (in JSON format):`;
             const workshopStructure = response.workshop_creation_data;
 
             const formattedResponse = formatAIResponse(aiMessageText);
+            
+            // Optimized streaming with batching and throttling
+            const streamText = async (text, messageId) => {
+                const chunkSize = 5; // Increased chunk size for better performance
+                const delay = 20; // Reduced delay further
+                
             let streamedText = "";
-            for (const char of formattedResponse) {
-                streamedText += char;
-                setMessages(prev =>
-                    (Array.isArray(prev) ? prev : []).map(m =>
-                        m.id === tempAiMessageId ? { ...m, text: streamedText, isStreaming: true } : m
-                    )
-                );
-                await new Promise(r => setTimeout(r, 10));
-            }
+                for (let i = 0; i < text.length; i += chunkSize) {
+                    const chunk = text.slice(i, i + chunkSize);
+                    streamedText += chunk;
+                    
+                    // Batch state update
+                    setMessages(prev => {
+                        const safeMessages = Array.isArray(prev) ? prev : [];
+                        return safeMessages.map(m =>
+                            m.id === messageId ? { ...m, text: streamedText, isStreaming: true } : m
+                        );
+                    });
+                    
+                    // Only delay if not the last chunk and user is still on page
+                    if (i + chunkSize < text.length && document.visibilityState === 'visible') {
+                        await new Promise(r => setTimeout(r, delay));
+                    }
+                }
+                return streamedText;
+            };
+            
+            await streamText(formattedResponse, tempAiMessageId);
 
-            const createAiMsgResponse = await dataService.createMessage(currentAppUser, {
+            // Parallel operations for better performance
+            const [createAiMsgResponse] = await Promise.all([
+                dataService.createMessage(currentAppUser, {
                 conversationId: currentConv.id,
                 text: formattedResponse,
                 sender: 'ai'
-            });
+                }),
+                // Run title generation in parallel if needed
+                shouldGenerateTitle ? generateConversationTitle(userMessageContent, aiMessageText, currentConv.id) : Promise.resolve()
+            ]);
+            
             const finalAiMessage = createAiMsgResponse.data.message;
 
             const finalMessageObject = {
@@ -1249,6 +1086,7 @@ Coach (in JSON format):`;
                 workshopStructure: workshopStructure
             };
 
+            // Batch state updates for better performance
             setMessages(prev => {
                 const safeMessages = Array.isArray(prev) ? prev : [];
                 return safeMessages.map(m => (m.id === tempAiMessageId ? finalMessageObject : m));
@@ -1260,10 +1098,6 @@ Coach (in JSON format):`;
                     [currentConv.id]: currentCache.map(m => m.id === tempAiMessageId ? finalMessageObject : m)
                 };
             });
-
-            if (shouldGenerateTitle) {
-                generateConversationTitle(userMessageContent, aiMessageText, currentConv.id);
-            }
 
         } catch (error) {
             console.error("Error calling LLM:", error);
@@ -1307,231 +1141,13 @@ Coach (in JSON format):`;
                 (discoveryState.answers || {})
             );
 
+            // Use the same optimized schema as the main flow for consistency
+            const context = analyzeContext(lastUserMessage.text, conversationHistory);
+            const responseSchema = createOptimizedSchema(context);
+
             const llmPayload = {
                 prompt: fullPrompt,
-                response_json_schema: {
-                    "type": "object",
-                    "properties": {
-                        "ai_response_text": {
-                            "type": "string",
-                            "description": "The conversational text response to be shown to the user. This should always be populated."
-                        },
-                        "action": {
-                            "type": ["string", "null"],
-                            "description": "A special action to be performed by the frontend, like 'redirect_to_profile'."
-                        },
-                        "course_creation_data": {
-                            "type": ["object", "null"],
-                            "description": "The structured course data. IMPORTANT: Only populate this field after the full consultation process is complete and the user has agreed to have the course created. Otherwise, this should be null.",
-                            "properties": {
-                                "title": { "type": "string" },
-                                "description": {
-                                    "type": "string",
-                                    "description": "A crisp, engaging summary of the entire course."
-                                },
-                                "modules": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "title": { "type": "string" },
-                                            "chapters": {
-                                                "type": "array",
-                                                "items": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "title": { "type": "string" },
-                                                        "description": {
-                                                            "type": "string",
-                                                            "description": "A concise description for this specific chapter."
-                                                        },
-                                                        "content": { "type": "string" },
-                                                        "totalDuration": { "type": "number" },
-                                                        "contentType": { "type": "string", "enum": ["article", "video", "audio"] }
-                                                    },
-                                                    "required": ["title", "description", "content", "totalDuration", "contentType"]
-                                                }
-                                            }
-                                        },
-                                        "required": ["title", "chapters"]
-                                    }
-                                }
-                            },
-                            "required": ["title", "description", "modules"]
-                        },
-                        "coupon_creation_data": {
-                            "type": ["object", "null"],
-                            "description": "The structured coupon data. IMPORTANT: Only populate this field after the full consultation process is complete and the user has agreed to have the coupon created. Otherwise, this should be null.",
-                            "properties": {
-                                "code": {
-                                    "type": "string",
-                                    "description": "Coupon code without spaces or special characters, only alphanumeric"
-                                },
-                                "startAt": {
-                                    "type": "string",
-                                    "description": "ISO format date string for when coupon becomes active"
-                                },
-                                "validTill": {
-                                    "type": "string",
-                                    "description": "ISO format date string for when coupon expires, must be after startAt and different from startAt"
-                                },
-                                "type": {
-                                    "type": "string",
-                                    "enum": ["creator_discount_coupon", "mango_coupon"],
-                                    "description": "creator_discount_coupon uses flatDiscount, mango_coupon type uses percentageDiscount"
-                                },
-                                "flatDiscount": {
-                                    "type": ["number", "null"],
-                                    "format": "integer",
-                                    "description": "Fixed amount discount, use with creator_discount_coupon type only"
-                                },
-                                "percentageDiscount": {
-                                    "type": ["number", "null"],
-                                    "format": "integer",
-                                    "description": "Percentage discount, use with mango_coupon type only"
-                                },
-                                "currency": {
-                                    "type": "string",
-                                    "enum": ["INR", "USD", "EUR"],
-                                    "description": "Currency for the discount",
-                                    "default": "INR"
-                                }
-                            },
-                            "required": ["code", "startAt", "validTill", "type", "currency"]
-                        },
-                        "post_creation_data": {
-                            "type": ["object", "null"],
-                            "description": "The structured post data. IMPORTANT: Only populate this field after the user has approved the caption and agreed to have the post created. Otherwise, this should be null.",
-                            "properties": {
-                                "caption": {
-                                    "type": "string",
-                                    "description": "The full text content of the feed post."
-                                }
-                            },
-                            "required": ["caption"]
-                        },
-                        "service_creation_data": {
-                            "type": ["object", "null"],
-                            "description": "The structured service page data. IMPORTANT: Only populate this field after the full consultation process is complete and the user has agreed to have the service page created. Otherwise, this should be null.",
-                            "properties": {
-                                "title": {
-                                    "type": "string",
-                                    "description": "The name of the service that users will see before paying."
-                                },
-                                "description": {
-                                    "type": "string",
-                                    "description": "A short description of what this service includes and what people get when they pay."
-                                },
-                                "recurringType": {
-                                    "type": "string",
-                                    "enum": ["onetime", "monthly", "quarterly", "halfyearly", "yearly"],
-                                    "description": "The payment frequency for this service."
-                                },
-                                "price": {
-                                    "type": "number",
-                                    "description": "The price amount for this service."
-                                },
-                                "currency": {
-                                    "type": "string",
-                                    "enum": ["INR", "USD", "EUR"],
-                                    "description": "The currency for the service price.",
-                                    "default": "INR"
-                                }
-                            },
-                            "required": ["title", "description", "recurringType", "price", "currency"]
-                        },
-                        "workshop_creation_data": {
-                            "type": ["object", "null"],
-                            "description": "The structured workshop data. IMPORTANT: Only populate this field after ALL MANDATORY FIELDS are collected (title, description, startDate, endDate, fromTime, timezone, timezoneName, duration, ongoingCallType, platform) and the user has agreed to have the workshop created. Otherwise, this should be null.",
-                            "properties": {
-                                "title": {
-                                    "type": "string",
-                                    "description": "The name of the workshop. REQUIRED."
-                                },
-                                "description": {
-                                    "type": "string",
-                                    "description": "A short description of what this workshop is about and the value participants will get. REQUIRED."
-                                },
-                                "startDate": {
-                                    "type": "string",
-                                    "description": "Workshop start date in YYYY-MM-DD format. REQUIRED."
-                                },
-                                "endDate": {
-                                    "type": "string",
-                                    "description": "Workshop end date in YYYY-MM-DD format. Must be same or after startDate. REQUIRED."
-                                },
-                                "fromTime": {
-                                    "type": "string",
-                                    "description": "Workshop start time in HH:mm 24-hour format. REQUIRED."
-                                },
-                                "ongoingCallType": {
-                                    "type": "string",
-                                    "enum": ["videocall", "webinar"],
-                                    "description": "The type of call session. REQUIRED."
-                                },
-                                "platform": {
-                                    "type": "string",
-                                    "enum": ["custom", "webinar", "meeting", "tagmango"],
-                                    "description": "The platform where the workshop will be hosted. REQUIRED."
-                                },
-                                "duration": {
-                                    "type": "number",
-                                    "description": "Workshop duration in minutes. Must be greater than 0. REQUIRED."
-                                },
-                                "timezone": {
-                                    "type": "string",
-                                    "description": "Timezone offset format like +05:30 or -08:00. REQUIRED. Default to +05:30 if not specified."
-                                },
-                                "timezoneName": {
-                                    "type": "string",
-                                    "description": "Timezone name like Asia/Kolkata or America/New_York. REQUIRED. Default to Asia/Kolkata if not specified."
-                                },
-                                "zoomMeetingType": {
-                                    "type": ["string", "null"],
-                                    "enum": ["meeting", "webinar", null],
-                                    "description": "Zoom meeting type, only relevant if platform involves Zoom."
-                                },
-                                "recurringType": {
-                                    "type": ["string", "null"],
-                                    "enum": ["weekly", "daily", null],
-                                    "description": "How often the workshop repeats, null for one-time workshops."
-                                },
-                                "repeatingDays": {
-                                    "type": ["array", "null"],
-                                    "items": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "maximum": 6
-                                    },
-                                    "description": "Array of days (0-6, Sunday to Saturday) when workshop occurs, null for one-time workshops."
-                                },
-                                "zoomWaitingList": {
-                                    "type": ["boolean", "null"],
-                                    "description": "Whether to enable waiting list for Zoom sessions."
-                                },
-                                "zoomRegistration": {
-                                    "type": ["boolean", "null"],
-                                    "description": "Whether to enable registration for Zoom sessions."
-                                },
-                                "enableRecordingZoomCall": {
-                                    "type": ["boolean", "null"],
-                                    "description": "Whether to enable recording for Zoom sessions."
-                                },
-                                "showGroupLinkForRecurringCall": {
-                                    "type": ["boolean", "null"],
-                                    "description": "Whether to show group link for recurring calls."
-                                },
-                                "mode": {
-                                    "type": ["string", "null"],
-                                    "enum": ["weekly", "daily", null],
-                                    "description": "Same as recurringType, used for compatibility."
-                                }
-                            },
-                            "required": ["title", "description", "startDate", "endDate", "fromTime", "ongoingCallType", "platform", "duration", "timezone", "timezoneName"]
-                        }
-                    },
-                    "required": ["ai_response_text"]
-                }
+                response_json_schema: responseSchema
             };
 
             const response = await InvokeLLM(llmPayload);
