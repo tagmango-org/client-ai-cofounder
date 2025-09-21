@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { User } from '@/api/entities';
-import { ThemeProvider } from './components/ThemeProvider';
+import { ThemeProvider } from '../components/ThemeProvider';
 import { appUserManager } from '@/api/functions';
-import { AppUserContext } from './components/AppUserContext';
+import { AppUserContext } from '../components/AppUserContext';
 
 function LayoutContent({ children, currentPageName }) {
   const [user, setUser] = useState(null);
@@ -35,7 +35,7 @@ function LayoutContent({ children, currentPageName }) {
 
   // For KnowledgeBase page, show admin layout only for admins
   if (currentPageName === 'KnowledgeBase' && user && user.role === 'admin') {
-    const AdminLayout = React.lazy(() => import('./components/AdminLayout'));
+    const AdminLayout = React.lazy(() => import('../components/AdminLayout'));
     return (
       <React.Suspense fallback={
         <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
@@ -50,7 +50,7 @@ function LayoutContent({ children, currentPageName }) {
   // For Profile page, show admin layout for admins, regular layout for users
   if (currentPageName === 'Profile') {
     if (user && user.role === 'admin') {
-      const AdminLayout = React.lazy(() => import('./components/AdminLayout'));
+      const AdminLayout = React.lazy(() => import('../components/AdminLayout'));
       return (
         <React.Suspense fallback={
           <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">

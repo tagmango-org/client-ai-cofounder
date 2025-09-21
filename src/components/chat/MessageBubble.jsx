@@ -88,9 +88,8 @@ export default function MessageBubble({ msg, thinkingMessage, onRegenerate, isRe
           </div>
         ) : (
           <>
-            <div className="text-[var(--text-primary)]">
+            <div className="text-[var(--text-primary)] prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-headings:font-medium prose-a:text-[var(--accent-orange)]">
               <ReactMarkdown
-                className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-headings:font-medium prose-a:text-[var(--accent-orange)]"
                 components={{ a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" /> }}
               >
                 {msg.text}
@@ -109,11 +108,8 @@ export default function MessageBubble({ msg, thinkingMessage, onRegenerate, isRe
             {/* Message Actions */}
             <div className={`mt-4 flex items-center gap-1 sleek-transition ${copyClicked ? '!opacity-100' : 'opacity-40 group-hover:opacity-100'}`}>
                 <div className="group/tooltip relative">
-                    <Button
-                        as={motion.button}
-                        variant="ghost"
-                        size="sm"
-                        className="text-[var(--text-primary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] rounded-md p-1.5 h-auto"
+                    <motion.button
+                        className="text-[var(--text-primary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] rounded-md p-1.5 h-auto bg-transparent border-0 cursor-pointer"
                         onClick={handleCopy}
                         whileTap={{ scale: 0.8, y: 4 }}
                         animate={copyClicked ? {
@@ -127,7 +123,7 @@ export default function MessageBubble({ msg, thinkingMessage, onRegenerate, isRe
                         }}
                     >
                         <Copy className="w-4 h-4" />
-                    </Button>
+                    </motion.button>
                     <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md px-2 py-1 text-sm text-[var(--text-primary)] shadow-lg whitespace-nowrap z-50 opacity-0 pointer-events-none group-hover/tooltip:opacity-100 transition-opacity duration-200">
                         Copy response
                     </div>
