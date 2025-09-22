@@ -109,9 +109,11 @@ const workshopSchema = {
 export const createOptimizedSchema = (context = {}) => {
     const schema = { ...baseResponseSchema };
     
-    // Always include course schema for broader coverage (main use case)
-    // This ensures the download button appears consistently
-    schema.properties.course_creation_data = courseSchema;
+    // Only include course schema when context suggests course creation (not just questions about courses)
+    if (context.expectsCourse || context.courseCreationIntent || 
+        (context.mentions?.includes('course') && !context.isQuestionAboutExisting)) {
+        schema.properties.course_creation_data = courseSchema;
+    }
     
     // Add other schemas if context suggests they might be needed
     if (context.expectsCoupon || context.mentions?.includes('coupon') || context.mentions?.includes('discount')) {
@@ -152,9 +154,20 @@ export const analyzeContext = (userMessage, conversationHistory = []) => {
     const recentMessages = conversationHistory.slice(-5).map(m => m.text?.toLowerCase() || '').join(' ');
     const fullContext = (message + ' ' + recentMessages).toLowerCase();
     
+    // Detect if user is asking questions about existing courses vs wanting to create new ones
+    const isQuestionAboutExisting = /(?:what|which|how many|tell me about|explain|describe|show me).*(?:course|module|chapter|lesson)/i.test(message) ||
+        /(?:what.*things|what.*are there|what.*contents?|what.*includes?).*(?:in|of).*(?:this|the).*course/i.test(message);
+    
+    // Detect course creation intent
+    const courseCreationIntent = /(?:create|make|build|design|develop|generate|suggest|outline).*(?:course|curriculum|training|program)/i.test(message) ||
+        /(?:course|curriculum|training|program).*(?:create|make|build|design|develop|generate|suggest|outline)/i.test(message) ||
+        /(?:help me|can you|i want to|i need to).*(?:create|make|build).*course/i.test(message);
+    
     return {
         mentions: fullContext.split(/\s+/),
-        expectsCourse: /course|curriculum|lesson|module|teach|learn|training/i.test(fullContext),
+        isQuestionAboutExisting,
+        courseCreationIntent,
+        expectsCourse: /course|curriculum|lesson|module|teach|learn|training/i.test(fullContext) && !isQuestionAboutExisting,
         expectsCoupon: /coupon|discount|offer|promo|sale/i.test(fullContext),
         expectsPost: /post|content|caption|social|share|publish/i.test(fullContext),
         expectsService: /service|pricing|payment|subscription|membership/i.test(fullContext),

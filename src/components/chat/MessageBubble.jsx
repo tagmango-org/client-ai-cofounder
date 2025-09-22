@@ -11,10 +11,18 @@ export default function MessageBubble({ msg, thinkingMessage, onRegenerate, isRe
 
   const [copyClicked, setCopyClicked] = useState(false);
 
-  // Detect if message contains course content even without courseStructure
+  // Detect if message contains course content that suggests creation (not just informational)
   const hasCourseContent = msg.text && (
-    /course|curriculum|lesson|module|chapter|training|learning|teach/i.test(msg.text) ||
-    /title:|module \d+:|chapter \d+:/i.test(msg.text)
+    // Look for course creation indicators, not just mentions
+    /(?:create|design|build|develop|make|suggested?|outline|structure).*(?:course|curriculum|training|program)/i.test(msg.text) ||
+    /(?:course|curriculum|training|program).*(?:create|design|build|develop|make|suggested?|outline|structure)/i.test(msg.text) ||
+    // Look for structured course content with multiple modules/chapters
+    (/(?:course title|title:)/i.test(msg.text) && /module\s*\d+/i.test(msg.text)) ||
+    // Look for course description followed by modules
+    (/course description/i.test(msg.text) && /modules? outline/i.test(msg.text)) ||
+    // Avoid showing button for questions about existing courses
+    (!/(?:what|which|how many|tell me about|explain|describe).*(?:course|module|chapter)/i.test(msg.text) &&
+     /(?:module \d+:|chapter \d+:|lesson \d+:)/i.test(msg.text))
   );
 
   // Parse course structure from message text when courseStructure is missing
@@ -217,8 +225,8 @@ export default function MessageBubble({ msg, thinkingMessage, onRegenerate, isRe
 
             {/* Action Buttons */}
             <div className="mt-4 flex flex-wrap gap-3">
-                {/* Course button - show if we have courseStructure OR if text contains course content */}
-                {(msg.courseStructure || hasCourseContent) && (() => {
+                {/* Course button - prioritize courseStructure from LLM, fallback to text detection */}
+                {(msg.courseStructure || (hasCourseContent && !msg.courseStructure)) && (() => {
                   const courseData = msg.courseStructure || parseCourseFromText(msg.text);
                   return renderCreateButton('course', courseData, <BookOpen className="w-4 h-4" />, 'Create Course', 'AI_ASSISTANT_CREATE_COURSE');
                 })()}
