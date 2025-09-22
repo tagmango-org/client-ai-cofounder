@@ -29,101 +29,117 @@ export default function MessageBubble({ msg, thinkingMessage, onRegenerate, isRe
   const parseCourseFromText = (text) => {
     if (!text) return null;
 
+    // Clean up markdown formatting from text
+    const cleanText = text.replace(/\*\*/g, '').replace(/\*/g, '');
+
     // Extract course title - enhanced for various formats
-    // First try to find a quoted title
-    let titleMatch = text.match(/"([^"]*(?:course|training|basics|essentials|diving|programming|cooking|fitness)[^"]*)"/i);
+    let title = 'Custom Course';
+    
+    // Look for quoted titles first
+    let titleMatch = cleanText.match(/"([^"]*(?:course|training|guide|recycling|plastic)[^"]*)"/i);
     
     // If no quoted title, try other patterns
     if (!titleMatch) {
-      titleMatch = text.match(/(?:course title:|title:)\s*(.+?)(?:\n|\.)/i) ||
-                   text.match(/(?:course|training|program)(?:\s+(?:on|for|about))?\s*([^.!?\n]+?(?:course|training|basics|essentials)[^.!?\n]*)/i) ||
-                   text.match(/([^.!?\n]*(?:course|training|basics|essentials)[^.!?\n]*)/i);
+      titleMatch = cleanText.match(/(?:title:\s*|course\s+title:\s*)"?([^"\n]+)"?/i) ||
+                   cleanText.match(/(?:course\s+overview:\s*title:\s*)"?([^"\n]+)"?/i) ||
+                   cleanText.match(/(?:the\s+complete\s+guide\s+to\s+)([^.\n]+)/i) ||
+                   cleanText.match(/(?:comprehensive\s+course\s+on\s+)([^.\n]+)/i);
     }
     
-    let title = titleMatch ? titleMatch[1].trim().replace(/["""]/g, '') : 'Custom Course';
-    
-    // Clean up the title if it contains extra instruction text
-    if (title.includes('like ')) {
-      const likeMatch = title.match(/like\s+"([^"]+)"/i);
-      if (likeMatch) {
-        title = likeMatch[1];
+    if (titleMatch) {
+      title = titleMatch[1].trim().replace(/["""]/g, '');
+      // Clean up any extra text
+      title = title.replace(/\s*course$/i, '').trim();
+      if (!title.toLowerCase().includes('course') && !title.toLowerCase().includes('guide')) {
+        title = `The Complete Guide to ${title}`;
       }
     }
+
+    // Extract description
+    let description = 'Course content extracted from conversation';
     
-    // If we found a basic match, enhance it for common topics
-    if (title === 'Custom Course' && /scuba diving/i.test(text)) {
-      title = 'Scuba Diving Basics for Beginners';
-    } else if (title.toLowerCase().includes('scuba diving') && !title.toLowerCase().includes('basics')) {
-      title = title.includes('for') ? title : title + ' for Beginners';
+    let descMatch = cleanText.match(/(?:description:\s*)"?([^"\n]+?)"?(?:\n|$)/i) ||
+                   cleanText.match(/(?:this\s+course\s+will\s+)([^.\n]+)/i) ||
+                   cleanText.match(/(?:participants\s+(?:will\s+)?(?:learn|understand|discover)\s+)([^.\n]+)/i);
+    
+    if (descMatch) {
+      description = descMatch[1].trim().replace(/["""]/g, '');
+      if (!description.endsWith('.')) {
+        description += '.';
+      }
     }
 
-    // Extract description - enhanced for various formats
-    let descMatch = text.match(/(?:description:|briefly describe|learners will achieve?)\s*[^"]*"([^"]+)"/i) ||
-                   text.match(/(?:for example,?\s*)"([^"]+)"/i) ||
-                   text.match(/(?:description:|briefly describe|learners will achieve?|learn)\s*(.+?)(?:\n|modules?:|want me|$)/i);
-    
-    let description = descMatch ? descMatch[1].trim().replace(/["""]/g, '').replace(/\.$/, '') : 'Course content extracted from conversation';
-    
-    // Enhanced description for scuba diving
-    if (/scuba diving/i.test(text) && description === 'Course content extracted from conversation') {
-      description = 'Learn the essentials of scuba diving, from gear setup to underwater safety';
-    }
-
-    // Extract modules
+    // Extract modules - look for various patterns
     const modules = [];
-    const moduleMatches = text.match(/module \d+:?\s*([^.\n]+)/gi) || [];
     
-    moduleMatches.forEach((match, index) => {
-      const moduleTitle = match.replace(/module \d+:?\s*/i, '').trim();
-      modules.push({
-        title: moduleTitle,
-        chapters: [
-          {
-            title: `Introduction to ${moduleTitle}`,
-            description: `Learn the fundamentals of ${moduleTitle.toLowerCase()}`,
-            content: `This chapter covers the essential concepts and practices related to ${moduleTitle.toLowerCase()}.`,
-            totalDuration: 30,
-            contentType: 'article'
-          }
-        ]
-      });
-    });
-
-    // If no modules found, create generic ones based on content
-    if (modules.length === 0) {
-      const topics = text.match(/(?:•\s*|-)?\s*([^.\n!?]+(?:essentials?|basics?|skills?|safety|equipment|introduction|procedures?))/gi) || [];
+    // First try to find numbered modules
+    const numberedModules = cleanText.match(/(?:modules?:\s*\n?)((?:(?:\d+\.?\s*|\-\s*|•\s*)[^\n]+\n?)+)/i);
+    
+    if (numberedModules) {
+      const moduleLines = numberedModules[1].match(/(?:\d+\.?\s*|\-\s*|•\s*)([^\n]+)/g) || [];
       
-      if (topics.length > 0) {
-        topics.slice(0, 5).forEach((topic, index) => {
-          const cleanTopic = topic.replace(/^[•\-\s]*/, '').trim();
+      moduleLines.forEach((line, index) => {
+        const moduleTitle = line.replace(/^\d+\.?\s*|\-\s*|•\s*/, '').trim();
+        if (moduleTitle && moduleTitle.length > 0) {
           modules.push({
-            title: cleanTopic,
+            title: moduleTitle,
             chapters: [
               {
-                title: `Understanding ${cleanTopic}`,
-                description: `Comprehensive overview of ${cleanTopic.toLowerCase()}`,
-                content: `This chapter provides detailed information about ${cleanTopic.toLowerCase()}.`,
-                totalDuration: 25,
+                title: `Introduction to ${moduleTitle}`,
+                description: `Learn the fundamentals of ${moduleTitle.toLowerCase()}`,
+                content: `This chapter covers the essential concepts and practices related to ${moduleTitle.toLowerCase()}.`,
+                totalDuration: 30,
                 contentType: 'article'
               }
             ]
           });
-        });
-      } else {
-        // Fallback modules
-        modules.push({
-          title: 'Getting Started',
-          chapters: [
-            {
-              title: 'Introduction',
-              description: 'Course introduction and overview',
-              content: 'Welcome to this comprehensive course.',
-              totalDuration: 20,
-              contentType: 'article'
-            }
-          ]
+        }
+      });
+    }
+
+    // If no numbered modules found, look for topic-based content
+    if (modules.length === 0) {
+      // Look for any bullet points or topics in the text
+      const topics = cleanText.match(/(?:(?:\-\s*|•\s*|\d+\.\s*)([^\n]+(?:recycling|plastic|process|initiative|future|challenge|overview|introduction)[^\n]*))/gi) || 
+                    cleanText.match(/([^\n]*(?:recycling|plastic|process|initiative|future|challenge|overview|introduction)[^\n]*)/gi) || [];
+      
+      const uniqueTopics = [...new Set(topics.slice(0, 5))];
+      
+      if (uniqueTopics.length > 0) {
+        uniqueTopics.forEach((topic, index) => {
+          const cleanTopic = topic.replace(/^[\-•\d\.\s]*/, '').trim();
+          if (cleanTopic && cleanTopic.length > 5) { // Filter out very short topics
+            modules.push({
+              title: cleanTopic,
+              chapters: [
+                {
+                  title: `Understanding ${cleanTopic}`,
+                  description: `Comprehensive overview of ${cleanTopic.toLowerCase()}`,
+                  content: `This chapter provides detailed information about ${cleanTopic.toLowerCase()}.`,
+                  totalDuration: 25,
+                  contentType: 'article'
+                }
+              ]
+            });
+          }
         });
       }
+    }
+
+    // Fallback if still no modules
+    if (modules.length === 0) {
+      modules.push({
+        title: 'Getting Started',
+        chapters: [
+          {
+            title: 'Introduction',
+            description: 'Course introduction and overview',
+            content: 'Welcome to this comprehensive course.',
+            totalDuration: 20,
+            contentType: 'article'
+          }
+        ]
+      });
     }
 
     const result = {

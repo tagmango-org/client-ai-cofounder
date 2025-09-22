@@ -919,8 +919,28 @@ Coach (in JSON format):`;
     };
 
     const handleSendMessage = async (userMessageOverride = null) => {
-        const content = String(userMessageOverride || message || '');
-        if (!content.trim() || !activeConversation || isTyping) return;
+        // Handle case where an event object might be passed instead of a string
+        let messageText = '';
+        if (userMessageOverride !== null && userMessageOverride !== undefined) {
+            // Check if it's an event object (has target property) and ignore it
+            if (typeof userMessageOverride === 'object' && userMessageOverride.target) {
+                messageText = message || '';
+            } else if (typeof userMessageOverride === 'string') {
+                messageText = userMessageOverride;
+            } else if (Array.isArray(userMessageOverride)) {
+                messageText = userMessageOverride.join(', ');
+            } else {
+                // For any other object types, convert safely to string
+                messageText = typeof userMessageOverride === 'object' 
+                    ? JSON.stringify(userMessageOverride) 
+                    : String(userMessageOverride);
+            }
+        } else {
+            messageText = message || '';
+        }
+        
+        const content = messageText.trim();
+        if (!content || !activeConversation || isTyping) return;
         
         if (!currentAppUser) {
             alert("Please wait for the app to initialize.");
@@ -1950,7 +1970,7 @@ I now have your complete coaching blueprint and will use it to provide deeply pe
                                 />
                                 
                                 <Button
-                                    onClick={handleSendMessage}
+                                    onClick={() => handleSendMessage()}
                                     disabled={isTyping || !message.trim() || !currentAppUser}
                                     className="bg-[var(--accent-orange)] hover:bg-[var(--accent-orange-hover)] disabled:opacity-50 disabled:hover:bg-[var(--accent-orange)] text-white h-10 w-10 p-0 rounded-full flex-shrink-0"
                                 >
