@@ -46,11 +46,11 @@ export const listMessages = async (currentUser, { conversationId, cursor, limit 
     return localMessageManager.list({ conversationId });
 };
 
-export const createMessage = async (currentUser, { conversationId, text, sender }) => {
+export const createMessage = async (currentUser, { conversationId, text, sender, ...additionalProps }) => {
     if (isRealUser(currentUser)) {
         return manageMessages({ action: 'create', appUserId: currentUser.id, conversationId, text, sender });
     }
-    return localMessageManager.create({ conversationId, text, sender });
+    return localMessageManager.create({ conversationId, text, sender, ...additionalProps });
 };
 
 export const updateMessage = async (currentUser, { messageId, updates, conversationId }) => {

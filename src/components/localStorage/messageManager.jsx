@@ -45,7 +45,7 @@ export const list = async ({ conversationId }) => {
   return { data: { messages: sortedMessages, hasMore: false } };
 };
 
-export const create = async ({ conversationId, text, sender }) => {
+export const create = async ({ conversationId, text, sender, ...additionalProps }) => {
   const messages = getMessages(conversationId);
   const newMessage = {
     id: generateLocalId(),
@@ -53,6 +53,7 @@ export const create = async ({ conversationId, text, sender }) => {
     text,
     sender,
     created_date: new Date().toISOString(),
+    ...additionalProps // Include any additional properties like courseStructure, etc.
   };
   messages.push(newMessage);
   saveMessages(conversationId, messages);

@@ -7,7 +7,8 @@ import { Send, Sparkles, ArrowUp, Loader2, Bot, Plus, Paperclip, X, Wand2, Check
 import { motion, AnimatePresence } from "framer-motion";
 import { Conversation } from '@/api/entities';
 import { Message } from '@/api/entities';
-import { InvokeLLM, UploadFile, ExtractDataFromUploadedFile } from '@/api/integrations';
+import { InvokeLLM } from '../api/openaiClient';
+import { UploadFile, ExtractDataFromUploadedFile } from '@/api/integrations';
 import { KnowledgeArticle } from '@/api/entities';
 import ConversationSidebar from '../components/conversations/ConversationSidebar';
 import CopyButton from '../components/chat/CopyButton';
@@ -1235,18 +1236,18 @@ Coach (in JSON format):`;
             const createAiMsgResponse = await dataService.createMessage(currentAppUser, {
                 conversationId: currentConv.id,
                 text: formattedResponse,
-                sender: 'ai'
-            });
-            const finalAiMessage = createAiMsgResponse.data.message;
-
-            const finalMessageObject = {
-                ...finalAiMessage,
-                isStreaming: false,
+                sender: 'ai',
                 courseStructure: courseStructure,
                 couponStructure: couponStructure,
                 postStructure: postStructure,
                 serviceStructure: serviceStructure,
                 workshopStructure: workshopStructure
+            });
+            const finalAiMessage = createAiMsgResponse.data.message;
+
+            const finalMessageObject = {
+                ...finalAiMessage,
+                isStreaming: false
             };
 
             setMessages(prev => {
@@ -1557,7 +1558,14 @@ Coach (in JSON format):`;
 
             await dataService.updateMessage(currentAppUser, {
                 messageId: messageToRegenerate.id,
-                updates: { text: formattedResponse },
+                updates: { 
+                    text: formattedResponse,
+                    courseStructure: courseStructure,
+                    couponStructure: couponStructure,
+                    postStructure: postStructure,
+                    serviceStructure: serviceStructure,
+                    workshopStructure: workshopStructure
+                },
                 conversationId: activeConversation.id // Pass convId for local storage
             });
             
