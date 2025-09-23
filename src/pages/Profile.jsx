@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Edit, Save, X, Lightbulb, Target, Sparkles, BrainCircuit, TrendingUp, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { InvokeLLM } from '@/api/integrations';
+import { InvokeLLM } from '../api/openaiClient';
 import * as dataService from '@/components/services/dataService';
 
 const synthèseIcons = {

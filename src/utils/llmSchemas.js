@@ -18,26 +18,53 @@ const baseResponseSchema = {
 
 const courseSchema = {
     "type": ["object", "null"],
-    "description": "Course data. Only populate after consultation is complete.",
+    "description": "Course data. CRITICAL: Only populate after consultation is complete AND user explicitly requests course creation. When creating courses, ALWAYS populate detailed content for each chapter - never leave content fields empty.",
     "properties": {
-        "title": { "type": "string" },
-        "description": { "type": "string" },
+        "title": { 
+            "type": "string",
+            "description": "Clear, engaging course title"
+        },
+        "description": { 
+            "type": "string",
+            "description": "Compelling course description that explains value and outcomes"
+        },
         "modules": {
             "type": "array",
+            "description": "Array of course modules, each containing multiple chapters",
             "items": {
                 "type": "object",
                 "properties": {
-                    "title": { "type": "string" },
+                    "title": { 
+                        "type": "string",
+                        "description": "Module title that clearly indicates the learning focus"
+                    },
                     "chapters": {
                         "type": "array",
+                        "description": "Array of chapters within this module",
                         "items": {
                             "type": "object",
                             "properties": {
-                                "title": { "type": "string" },
-                                "description": { "type": "string" },
-                                "content": { "type": "string" },
-                                "totalDuration": { "type": "number" },
-                                "contentType": { "type": "string", "enum": ["article", "video", "audio"] }
+                                "title": { 
+                                    "type": "string",
+                                    "description": "Clear, specific chapter title"
+                                },
+                                "description": { 
+                                    "type": "string",
+                                    "description": "Brief description of what this chapter covers"
+                                },
+                                "content": { 
+                                    "type": "string",
+                                    "description": "MANDATORY: Detailed, comprehensive chapter content (200-500+ words). Must include practical information, examples, step-by-step instructions, and actionable takeaways. Never leave empty or use placeholders."
+                                },
+                                "totalDuration": { 
+                                    "type": "number",
+                                    "description": "Estimated time in minutes to complete this chapter"
+                                },
+                                "contentType": { 
+                                    "type": "string", 
+                                    "enum": ["article", "video", "audio"],
+                                    "description": "Format type for this chapter content"
+                                }
                             },
                             "required": ["title", "description", "content", "totalDuration", "contentType"]
                         }
@@ -105,6 +132,47 @@ const workshopSchema = {
     "required": ["title", "description", "startDate", "endDate", "fromTime", "ongoingCallType", "platform", "duration", "timezone", "timezoneName"]
 };
 
+// Minimal course schema for speed
+const minimalCourseSchema = {
+    "type": ["object", "null"],
+    "description": "Create comprehensive courses with 4-6 modules, each containing 3-5 chapters",
+    "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "modules": {
+            "type": "array",
+            "description": "Array of 4-6 course modules for comprehensive coverage",
+            "minItems": 4,
+            "maxItems": 6,
+            "items": {
+                "type": "object",
+                "properties": {
+                    "title": { "type": "string" },
+                    "chapters": {
+                        "type": "array",
+                        "description": "Array of 3-5 chapters per module",
+                        "minItems": 3,
+                        "maxItems": 5,
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "title": { "type": "string" },
+                                "description": { "type": "string" },
+                                "content": { "type": "string" },
+                                "totalDuration": { "type": "number" },
+                                "contentType": { "type": "string", "enum": ["article", "video", "audio"] }
+                            },
+                            "required": ["title", "description", "content", "totalDuration", "contentType"]
+                        }
+                    }
+                },
+                "required": ["title", "chapters"]
+            }
+        }
+    },
+    "required": ["title", "description", "modules"]
+};
+
 // Optimized schema factory - only include schemas that are likely needed based on context
 export const createOptimizedSchema = (context = {}) => {
     const schema = { ...baseResponseSchema };
@@ -112,23 +180,24 @@ export const createOptimizedSchema = (context = {}) => {
     // Only include course schema when context suggests course creation (not just questions about courses)
     if (context.expectsCourse || context.courseCreationIntent || 
         (context.mentions?.includes('course') && !context.isQuestionAboutExisting)) {
-        schema.properties.course_creation_data = courseSchema;
+        schema.properties.course_creation_data = minimalCourseSchema; // Use minimal schema for speed
+        // console.log('✅ Including minimal course_creation_data schema');
     }
     
-    // Add other schemas if context suggests they might be needed
-    if (context.expectsCoupon || context.mentions?.includes('coupon') || context.mentions?.includes('discount')) {
+    // Only add other schemas if explicitly needed (reduce payload)
+    if (context.expectsCoupon && context.mentions?.includes('coupon')) {
         schema.properties.coupon_creation_data = couponSchema;
     }
     
-    if (context.expectsPost || context.mentions?.includes('post') || context.mentions?.includes('content')) {
+    if (context.expectsPost && context.mentions?.includes('post')) {
         schema.properties.post_creation_data = postSchema;
     }
     
-    if (context.expectsService || context.mentions?.includes('service') || context.mentions?.includes('payment')) {
+    if (context.expectsService && context.mentions?.includes('service')) {
         schema.properties.service_creation_data = serviceSchema;
     }
     
-    if (context.expectsWorkshop || context.mentions?.includes('workshop') || context.mentions?.includes('event')) {
+    if (context.expectsWorkshop && context.mentions?.includes('workshop')) {
         schema.properties.workshop_creation_data = workshopSchema;
     }
     
@@ -161,9 +230,11 @@ export const analyzeContext = (userMessage, conversationHistory = []) => {
     // Detect course creation intent
     const courseCreationIntent = /(?:create|make|build|design|develop|generate|suggest|outline).*(?:course|curriculum|training|program)/i.test(message) ||
         /(?:course|curriculum|training|program).*(?:create|make|build|design|develop|generate|suggest|outline)/i.test(message) ||
-        /(?:help me|can you|i want to|i need to).*(?:create|make|build).*course/i.test(message);
+        /(?:help me|can you|i want to|i need to).*(?:create|make|build).*course/i.test(message) ||
+        /(?:give|show|provide).*(?:me|us).*(?:a|an).*course/i.test(message) ||
+        /course.*(?:about|on|regarding|for).*\w+/i.test(message);
     
-    return {
+    const result = {
         mentions: fullContext.split(/\s+/),
         isQuestionAboutExisting,
         courseCreationIntent,
@@ -173,4 +244,9 @@ export const analyzeContext = (userMessage, conversationHistory = []) => {
         expectsService: /service|pricing|payment|subscription|membership/i.test(fullContext),
         expectsWorkshop: /workshop|event|session|meeting|webinar|live/i.test(fullContext)
     };
+    
+    // Debug logging (disabled for performance)
+    // console.log('🔍 Context Analysis:', result);
+    
+    return result;
 };
