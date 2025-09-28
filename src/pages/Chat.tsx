@@ -11,7 +11,8 @@ import {
   KnowledgeArticle as KnowledgeArticleType,
   KeyPressHandler
 } from '@/types/chat';
-import { InvokeLLM, GenerateTitle, GeneratePhaseInsights, GenerateProfileSynthesis } from '@/api/integrations';
+import { InvokeLLM, GenerateTitle, GeneratePhaseInsights, GenerateProfileSynthesis } from '@/api/openai';
+
 import { KnowledgeArticle } from '@/api/entities';
 import ConversationSidebar from '../components/conversations/ConversationSidebar';
 import DiscoveryProgressTracker from '../components/chat/DiscoveryProgressTracker';
@@ -737,7 +738,7 @@ export default function Chat() {
 
     const generateConversationTitle = async (userText: string, aiText: string, conversationId: string): Promise<void> => {
         try {
-            const newTitle = await GenerateTitle({ userText });
+            const newTitle = await GenerateTitle({ userText, aiText });
 
             if (newTitle && conversationId) {
                 await dataService.updateConversation(currentAppUserProfile, {
@@ -859,6 +860,59 @@ Based on niche and user input, suggest one or more of the following:
 - **Memberships / Payment Pages:** "Want to offer 1-on-1 sessions or monthly group access? You can do that using memberships."
 - **Feed Posts:** "You can regularly share insights, tips or wins on your feed to build engagement."
 - **Coupons:** "If you're running an offer, I can help you create a coupon to boost conversions."
+
+### Course Creation Guidelines
+When a user requests a course on any topic (e.g., "Give me a course about solar power", "Create a course on digital marketing", etc.):
+1. **FIRST** provide a detailed explanation of the proposed course structure
+2. **INCLUDE** course overview, learning objectives, target audience, and module breakdown
+3. **ASK** the user for feedback, preferences, or modifications they'd like
+4. **WAIT** for user confirmation or modifications before creating the course_creation_data
+5. **ONLY** populate course_creation_data after user confirms or requests specific changes
+6. **MAKE** the response conversational and engaging, not just a brief acknowledgment
+
+**Example Response Format:**
+When user asks "Give me a course about solar power", respond like this:
+
+"Excellent choice! I'd love to help you create a comprehensive solar power course. Here's what I'm thinking:
+
+**Course Title:** 'Master Solar Power: From Basics to Business'
+
+**Target Audience:** Beginners to intermediate learners interested in solar energy
+
+**Learning Objectives:**
+- Understand solar energy fundamentals
+- Learn system design and installation
+- Master business aspects of solar projects
+- Gain hands-on practical skills
+
+**Proposed Course Structure:**
+1. **Module 1: Solar Fundamentals** (2 hours)
+   - How solar energy works
+   - Types of solar systems
+   - Benefits and challenges
+
+2. **Module 2: System Design** (3 hours)
+   - Site assessment
+   - Component selection
+   - System sizing calculations
+
+3. **Module 3: Installation & Maintenance** (2.5 hours)
+   - Installation process
+   - Safety protocols
+   - Ongoing maintenance
+
+4. **Module 4: Business & Economics** (2 hours)
+   - Cost analysis
+   - ROI calculations
+   - Market opportunities
+
+**Questions for you:**
+- What's your target audience's current knowledge level?
+- Do you want to focus more on residential or commercial solar?
+- Should we include hands-on projects or demonstrations?
+- Any specific certifications or compliance topics to cover?
+
+Let me know your thoughts and any modifications you'd like, then I'll create the full course structure for you!"
 
 ### If a Coach asks for something Outside Your Tools
 Don't reject. Instead, offer a solution within context:
@@ -1012,7 +1066,7 @@ Coach (in JSON format):`;
                         },
                         "course_creation_data": {
                             "type": ["object", "null"],
-                            "description": "The structured course data. Populate this field when the user requests a course on a specific topic (like 'Give me a course about solar power') or after a consultation process. Create a comprehensive course structure with modules and chapters.",
+                            "description": "The structured course data. Only populate this field AFTER the user has confirmed they want to create the course or has requested specific modifications. This should contain the final course structure with modules and chapters.",
                             "properties": {
                                 "title": { "type": "string" },
                                 "description": {
@@ -1352,7 +1406,7 @@ Coach (in JSON format):`;
                         },
                         "course_creation_data": {
                             "type": ["object", "null"],
-                            "description": "The structured course data. Populate this field when the user requests a course on a specific topic (like 'Give me a course about solar power') or after a consultation process. Create a comprehensive course structure with modules and chapters.",
+                            "description": "The structured course data. Only populate this field AFTER the user has confirmed they want to create the course or has requested specific modifications. This should contain the final course structure with modules and chapters.",
                             "properties": {
                                 "title": { "type": "string" },
                                 "description": {
