@@ -154,14 +154,14 @@ Respond with ONLY a JSON object in this exact format:
     }
 
     try {
-      await dataService.getOrCreateAppUser({
+     const data =await dataService.getOrCreateAppUser({
         userId: (currentAppUserProfile as any)?.userId || '',
         name: editedName.trim(),
         email: (currentAppUserProfile as any)?.email || '',
         phone: (currentAppUserProfile as any)?.phone || '',
         profilePic: (currentAppUserProfile as any)?.profilePic || '',
       });
-      setcurrentAppUserProfileProfile();
+      setcurrentAppUserProfileProfile(data.data.appUser);
     } catch (error) {
       console.error("Failed to update user name:", error);
       // Optionally revert name or show an error toast
@@ -229,35 +229,35 @@ Respond with ONLY a JSON object in this exact format:
           </div>
           <div className="flex items-center gap-3 mt-4 md:mt-0">
             <Link to={createPageUrl("Chat")}>
-              <button className="bg-transparent border border-gray-700 hover:bg-gray-800 hover:text-white rounded-md px-4 py-2 flex items-center">
+              <Button className="bg-transparent border border-gray-700 hover:bg-gray-800 hover:text-white rounded-md px-4 py-2 flex items-center">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Chat
-              </button>
+              </Button>
             </Link>
             {isEditing ? (
               <>
-                <button
+                <Button
                   onClick={() => setIsEditing(false)}
                   className="p-2 hover:bg-gray-800 rounded-md"
                 >
                   <X className="w-5 h-5" />
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={handleSaveEdit}
                   className="bg-green-600 hover:bg-green-700 rounded-md px-4 py-2 flex items-center"
                 >
                   <Save className="w-4 h-4 mr-2" />
                   Save
-                </button>
+                </Button>
               </>
             ) : (
-              <button
+              <Button
                 onClick={() => setIsEditing(true)}
                 className="bg-orange-500 hover:bg-orange-600 rounded-md px-4 py-2 flex items-center"
               >
                 <Edit className="w-4 h-4 mr-2" />
                 Edit Profile
-              </button>
+              </Button>
             )}
           </div>
         </motion.div>
@@ -390,9 +390,9 @@ Respond with ONLY a JSON object in this exact format:
                   You haven't answered any discovery questions yet.
                 </p>
                 <Link to={createPageUrl("Chat")}>
-                  <button className="bg-orange-500 hover:bg-orange-600 rounded-md px-6 py-3 text-lg">
+                  <Button className="bg-orange-500 hover:bg-orange-600 rounded-md px-6 py-3 text-lg">
                     Start Discovery
-                  </button>
+                  </Button>
                 </Link>
               </div>
             )}

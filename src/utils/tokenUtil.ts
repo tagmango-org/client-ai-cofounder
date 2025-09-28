@@ -25,12 +25,14 @@ export const DEV_TOKEN: string = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2Vya
 
 /**
  * Extract token from URL query parameters
+ * Looks for both 'token' and 'refreshToken' parameters
  * @returns {string | null} Token if found in URL, null otherwise
  */
 export function getTokenFromURL(): string | null {
   try {
     const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('token');
+    // Check for refreshToken first (production iframe), then token (fallback)
+    return urlParams.get('refreshToken') || urlParams.get('token');
   } catch (error) {
     console.error('Error extracting token from URL:', error);
     return null;
@@ -60,33 +62,39 @@ export function isDevelopmentMode(): boolean {
  * Get the appropriate token based on environment
  * Priority:
  * 1. Token from parent app data (if provided)
- * 2. Token from URL query parameters (production)
+ * 2. RefreshToken from URL query parameters (production iframe)
  * 3. Development token (development mode)
  * 
  * @param {string | null} parentToken - Token from parent app
  * @returns {string | null} Token to use for authentication
  */
 export function getAuthToken(parentToken: string | null = null): string | null {
+  console.log('🔍 Token resolution process started...');
+  
   // Priority 1: Use token from parent app if provided
   if (parentToken) {
-    console.log('🔑 Using token from parent app');
+    console.log('🔑 Using token from parent app data');
     return parentToken;
   }
 
-  // Priority 2: Extract token from URL (production)
+  // Priority 2: Extract refreshToken from URL (production iframe)
   const urlToken: string | null = getTokenFromURL();
   if (urlToken) {
-    console.log('🔑 Using token from URL query parameters');
+    const urlParams = new URLSearchParams(window.location.search);
+    const tokenType = urlParams.get('refreshToken') ? 'refreshToken' : 'token';
+    console.log(`🔑 Using ${tokenType} from URL query parameters`);
     return urlToken;
   }
 
   // Priority 3: Use development token in development mode
   if (isDevelopmentMode()) {
     console.log('🔑 Using development token (dev mode)');
+    console.log('🏠 Development environment detected');
     return DEV_TOKEN;
   }
 
-  console.log('⚠️ No token found');
+  console.log('⚠️ No token found in any source');
+  console.log('📍 Current URL:', window.location.href);
   return null;
 }
 

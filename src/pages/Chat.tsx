@@ -529,7 +529,7 @@ export default function Chat() {
             });
 
             if (response.data.success) {
-                setcurrentAppUserProfileProfile();
+                setcurrentAppUserProfileProfile(response.data.appUser);
                 console.log("Dev admin user created/retrieved:", response.data.appUser);
             } else {
                 console.error("Failed to create dev admin user:", response.data);

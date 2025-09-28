@@ -1,4 +1,5 @@
 import { base44 } from './base44Client';
+import tagMangoAuth from './auth';
 
 
 export const Conversation = base44.entities.Conversation;
@@ -11,5 +12,5 @@ export const AppUser = base44.entities.AppUser;
 
 
 
-// auth sdk:
-export const User = base44.auth;
+// Custom TagMango auth (replacing base44.auth):
+export const User = tagMangoAuth;

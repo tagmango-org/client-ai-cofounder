@@ -4,6 +4,7 @@ import { User } from '@/api/entities';
 import { ThemeProvider } from '../components/ThemeProvider';
 import { appUserManager } from '@/api/functions';
 import { AppUserContext } from '../components/AppUserContext';
+import { getAuthToken, logTokenInfo } from '../utils/tokenUtil';
 
 // Type definitions for Layout components
 interface PlatformUser {
@@ -46,6 +47,7 @@ interface MessageEvent {
       email: string;
       phone: string;
       profilePic: string;
+      token?: string;
     };
   };
 }
@@ -119,6 +121,7 @@ function LayoutContent({ children, currentPageName }: LayoutContentProps) {
 export default function Layout({ children, currentPageName }: LayoutProps) {
   const [currentAppUser, setCurrentAppUser] = useState<AppUser | null>(null);
   const [appUserLoading, setAppUserLoading] = useState<boolean>(true);
+  const [tagMangoUser, setTagMangoUser] = useState<any>(null);
 
   useEffect(() => {
     let externalAuthReceived: boolean = false;
@@ -155,16 +158,63 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
 
         console.log("Mode Determined: Authenticated User (from parent app)");
 
-        const { userId, name, email, phone, profilePic } = event.data.data!;
+        const { userId, name, email, phone, profilePic, token: parentToken } = event.data.data!;
+
+        // Get the appropriate token based on environment and availability
+        const token = getAuthToken(parentToken);
+        
+        console.log('🔍 Token source analysis:');
+        logTokenInfo(token);
 
         try {
+          let authenticatedUser: any = null;
+          let finalUserId = userId;
+          let finalName = name;
+          let finalEmail = email;
+          let finalPhone = phone;
+          let finalProfilePic = profilePic;
+
+          // If token is provided, authenticate with TagMango first
+          if (token) {
+            try {
+              authenticatedUser = await User.authenticate(token);
+              console.log('✅ TagMango authentication successful', authenticatedUser);
+              
+              // Store the TagMango user data in state
+              if (authenticatedUser) {
+                setTagMangoUser(authenticatedUser);
+                
+                // Use authenticated user data from TagMango API if available
+                finalUserId = authenticatedUser.userid || authenticatedUser.userId || authenticatedUser.id || userId;
+                finalName = authenticatedUser.name || authenticatedUser.full_name || authenticatedUser.displayName || name;
+                finalEmail = authenticatedUser.email || email;
+                finalPhone = authenticatedUser.phone || authenticatedUser.phoneNumber || phone;
+                finalProfilePic = authenticatedUser.profilePic || authenticatedUser.avatar || authenticatedUser.picture || profilePic;
+                
+                console.log('🔄 Using TagMango user data:', {
+                  userId: finalUserId,
+                  name: finalName,
+                  email: finalEmail,
+                  phone: finalPhone,
+                  profilePic: finalProfilePic
+                });
+              }
+            } catch (authError: any) {
+              console.error('❌ TagMango authentication failed:', authError);
+              // Continue with app user creation using parent app data
+              console.log('🔄 Falling back to parent app user data');
+            }
+          } else {
+            console.log('⚠️ No token available for TagMango authentication');
+          }
+
           const response = await appUserManager({
             action: 'getOrCreateAppUser',
-            userId,
-            name,
-            email,
-            phone,
-            profilePic
+            userId: finalUserId,
+            name: finalName,
+            email: finalEmail,
+            phone: finalPhone,
+            profilePic: finalProfilePic,
           });
 
           if (response.data && response.data.appUser) {
@@ -190,30 +240,48 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
 
       const isEmbedded: boolean = window.self !== window.top;
 
-      // Priority 1: Preview/Dev Mode (if logged into Base44 AND not embedded)
+      // Priority 1: Preview/Dev Mode (if token available AND not embedded)
       if (!isEmbedded) {
-        try {
-          const platformUser = await User.me();
-          if (platformUser) {
-            console.log("Mode Determined: Preview/Dev (Base44 user detected, not embedded)");
-            const response = await appUserManager({
-              action: 'getOrCreateAppUser',
-              userId: platformUser.id,
-              name: platformUser.full_name,
-              email: platformUser.email,
-              role: platformUser.role,
-              phone: '',
-              profilePic: ''
-            });
-            if (response.data && response.data.appUser) {
-              setCurrentAppUser(response.data.appUser);
+        // Try to get token for standalone/dev mode
+        const standaloneToken = getAuthToken();
+        
+        if (standaloneToken) {
+          try {
+            console.log("Mode Determined: Preview/Dev (Token available, not embedded)");
+            console.log('🔍 Standalone token source analysis:');
+            logTokenInfo(standaloneToken);
+            
+            // Authenticate with TagMango using the token
+            const platformUser = await User.authenticate(standaloneToken);
+            
+            if (platformUser) {
+              console.log('🔄 Using TagMango standalone user data:', platformUser);
+              
+              // Store the TagMango user data in state
+              setTagMangoUser(platformUser);
+              
+              const response = await appUserManager({
+                action: 'getOrCreateAppUser',
+                userId: platformUser.userid || platformUser.userId || platformUser.id || 'dev-user',
+                name: platformUser.name || platformUser.full_name || platformUser.displayName || 'Development User',
+                email: platformUser.email || 'dev@example.com',
+                role: 'user',
+                phone: platformUser.phone || platformUser.phoneNumber || '',
+                profilePic: platformUser.profilePic || platformUser.avatar || platformUser.picture || '',
+              });
+              
+              if (response.data && response.data.appUser) {
+                setCurrentAppUser(response.data.appUser);
+              }
+              setAppUserLoading(false);
+              return; // Mode determined, stop here.
             }
-            setAppUserLoading(false);
-            return; // Mode determined, stop here.
+          } catch (error: any) {
+            console.log('TagMango authentication failed in standalone mode:', error);
+            // Continue to embedded checks
           }
-        } catch (error: any) {
-          // This is expected if not logged into Base44. Proceed to next checks.
-          console.log("Not logged into Base44, proceeding to embedded checks");
+        } else {
+          console.log('No token available for standalone mode');
         }
       } else {
         console.log("App is embedded, skipping Preview/Dev mode check.");
@@ -268,7 +336,9 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
     <AppUserContext.Provider value={{ 
       currentAppUser: currentAppUser as any, 
       setCurrentAppUser: setCurrentAppUser as any, 
-      appUserLoading 
+      appUserLoading,
+      tagMangoUser,
+      setTagMangoUser
     }}>
       <ThemeProvider>
         <div className="min-h-screen transition-colors duration-300">
