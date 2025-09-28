@@ -1,17 +1,61 @@
 
-
 import React, { useState, useEffect } from 'react';
 import { User } from '@/api/entities';
 import { ThemeProvider } from '../components/ThemeProvider';
 import { appUserManager } from '@/api/functions';
 import { AppUserContext } from '../components/AppUserContext';
 
-function LayoutContent({ children, currentPageName }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+// Type definitions for Layout components
+interface PlatformUser {
+  id: string;
+  full_name: string;
+  email: string;
+  role: string;
+}
+
+interface AppUser {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  profilePic?: string;
+  role?: string;
+  profile?: {
+    status: string;
+    answers: Record<string, any>;
+  };
+}
+
+interface LayoutContentProps {
+  children: React.ReactNode;
+  currentPageName: string;
+}
+
+interface LayoutProps {
+  children: React.ReactNode;
+  currentPageName: string;
+}
+
+interface MessageEvent {
+  origin: string;
+  data: {
+    type: string;
+    data?: {
+      userId: string;
+      name: string;
+      email: string;
+      phone: string;
+      profilePic: string;
+    };
+  };
+}
+
+function LayoutContent({ children, currentPageName }: LayoutContentProps) {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const checkUser = async () => {
+    const checkUser = async (): Promise<void> => {
       try {
         const currentUser = await User.me();
         setUser(currentUser);
@@ -72,15 +116,15 @@ function LayoutContent({ children, currentPageName }) {
   );
 }
 
-export default function Layout({ children, currentPageName }) {
-  const [currentAppUser, setCurrentAppUser] = useState(null);
-  const [appUserLoading, setAppUserLoading] = useState(true);
+export default function Layout({ children, currentPageName }: LayoutProps) {
+  const [currentAppUser, setCurrentAppUser] = useState<AppUser | null>(null);
+  const [appUserLoading, setAppUserLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    let externalAuthReceived = false;
-    let anonymousModeTimer;
+    let externalAuthReceived: boolean = false;
+    let anonymousModeTimer: NodeJS.Timeout | undefined;
 
-    const handleMessage = async (event) => {
+    const handleMessage = async (event: MessageEvent): Promise<void> => {
       console.log('Received message:', {
         origin: event.origin,
         type: event.data?.type,
@@ -111,7 +155,7 @@ export default function Layout({ children, currentPageName }) {
 
         console.log("Mode Determined: Authenticated User (from parent app)");
 
-        const { userId, name, email, phone, profilePic } = event.data.data;
+        const { userId, name, email, phone, profilePic } = event.data.data!;
 
         try {
           const response = await appUserManager({
@@ -127,7 +171,7 @@ export default function Layout({ children, currentPageName }) {
             setCurrentAppUser(response.data.appUser);
             console.log('✅ App user set successfully:', response.data.appUser);
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('❌ Error handling external authentication:', error);
           // Fallback to anonymous mode on error
           setCurrentAppUser({
@@ -141,10 +185,10 @@ export default function Layout({ children, currentPageName }) {
       }
     };
 
-    const determineUserMode = async () => {
+    const determineUserMode = async (): Promise<void> => {
       setAppUserLoading(true);
 
-      const isEmbedded = window.self !== window.top;
+      const isEmbedded: boolean = window.self !== window.top;
 
       // Priority 1: Preview/Dev Mode (if logged into Base44 AND not embedded)
       if (!isEmbedded) {
@@ -167,7 +211,7 @@ export default function Layout({ children, currentPageName }) {
             setAppUserLoading(false);
             return; // Mode determined, stop here.
           }
-        } catch (error) {
+        } catch (error: any) {
           // This is expected if not logged into Base44. Proceed to next checks.
           console.log("Not logged into Base44, proceeding to embedded checks");
         }
@@ -186,13 +230,13 @@ export default function Layout({ children, currentPageName }) {
             data: { ready: true }
           }, '*'); // Use specific origin in production
           console.log('📤 Sent IFRAME_READY signal to parent');
-        } catch (error) {
+        } catch (error: any) {
           console.error('Failed to send ready signal to parent:', error);
         }
       }
 
       // Priority 3: Anonymous Mode (fallback with timeout)
-      anonymousModeTimer = setTimeout(() => {
+      anonymousModeTimer = setTimeout((): void => {
         if (!externalAuthReceived) {
           console.log("⏰ Timeout reached - Mode Determined: Anonymous (fallback)");
           setCurrentAppUser({
@@ -212,7 +256,7 @@ export default function Layout({ children, currentPageName }) {
     determineUserMode();
 
     // Cleanup function
-    return () => {
+    return (): void => {
       window.removeEventListener('message', handleMessage);
       if (anonymousModeTimer) {
         clearTimeout(anonymousModeTimer);
@@ -221,7 +265,11 @@ export default function Layout({ children, currentPageName }) {
   }, []); // Empty dependency array to run only once
 
   return (
-    <AppUserContext.Provider value={{ currentAppUser, setCurrentAppUser, appUserLoading }}>
+    <AppUserContext.Provider value={{ 
+      currentAppUser: currentAppUser as any, 
+      setCurrentAppUser: setCurrentAppUser as any, 
+      appUserLoading 
+    }}>
       <ThemeProvider>
         <div className="min-h-screen transition-colors duration-300">
           <LayoutContent children={children} currentPageName={currentPageName} />
