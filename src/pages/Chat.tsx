@@ -1012,7 +1012,7 @@ Coach (in JSON format):`;
                         },
                         "course_creation_data": {
                             "type": ["object", "null"],
-                            "description": "The structured course data. IMPORTANT: Only populate this field after the full consultation process is complete and the user has agreed to have the course created. Otherwise, this should be null.",
+                            "description": "The structured course data. Populate this field when the user requests a course on a specific topic (like 'Give me a course about solar power') or after a consultation process. Create a comprehensive course structure with modules and chapters.",
                             "properties": {
                                 "title": { "type": "string" },
                                 "description": {
@@ -1352,7 +1352,7 @@ Coach (in JSON format):`;
                         },
                         "course_creation_data": {
                             "type": ["object", "null"],
-                            "description": "The structured course data. IMPORTANT: Only populate this field after the full consultation process is complete and the user has agreed to have the course created. Otherwise, this should be null.",
+                            "description": "The structured course data. Populate this field when the user requests a course on a specific topic (like 'Give me a course about solar power') or after a consultation process. Create a comprehensive course structure with modules and chapters.",
                             "properties": {
                                 "title": { "type": "string" },
                                 "description": {
@@ -1799,7 +1799,7 @@ Respond with ONLY a JSON object in this exact format:
 }`;
 
         try {
-            const response = await GenerateProfileSynthesis(answers);
+            const response = await GenerateProfileSynthesis({ answers });
             return response;
         } catch (error) {
             console.error("Error generating profile synthesis:", error);
