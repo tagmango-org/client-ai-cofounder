@@ -16,6 +16,7 @@ export interface UserData {
   email: string;
   phone: string;
   profilePic: string;
+  role?: string;
 }
 
 // Conversation types

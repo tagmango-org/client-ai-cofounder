@@ -2,9 +2,26 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '@/api/entities';
 import { ThemeProvider } from '../components/ThemeProvider';
-import { appUserManager } from '@/api/functions';
 import { AppUserContext } from '../components/AppUserContext';
 import { getAuthToken, logTokenInfo } from '../utils/tokenUtil';
+import { API_BASE_URL } from '@/api/openai';
+
+// Helper function to extract TagMango user ID from token
+const getTagMangoUserIdFromToken = (token: string | null): string | null => {
+  if (!token) return null;
+  
+  try {
+    const tokenParts = token.split('.');
+    if (tokenParts.length === 3) {
+      const payload = JSON.parse(atob(tokenParts[1]));
+      return payload.userid || payload.userId || payload.id || null;
+    }
+  } catch (error) {
+    console.error('Error parsing TagMango token:', error);
+  }
+  
+  return null;
+};
 
 // Type definitions for Layout components
 interface PlatformUser {
@@ -208,18 +225,51 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
             console.log('⚠️ No token available for TagMango authentication');
           }
 
-          const response = await appUserManager({
-            action: 'getOrCreateAppUser',
-            userId: finalUserId,
-            name: finalName,
-            email: finalEmail,
-            phone: finalPhone,
-            profilePic: finalProfilePic,
+          // Use TagMango user ID from token for profile operations
+          const tagMangoUserId = getTagMangoUserIdFromToken(token);
+          const profileUserId = tagMangoUserId || finalUserId; // Fallback to finalUserId if token parsing fails
+          
+          console.log('👤 Using user ID for profile:', {
+            tagMangoUserId,
+            finalUserId,
+            usingUserId: profileUserId
           });
 
-          if (response.data && response.data.appUser) {
-            setCurrentAppUser(response.data.appUser);
-            console.log('✅ App user set successfully:', response.data.appUser);
+          // Use custom backend for user management instead of Base44
+          const response = await fetch(`${API_BASE_URL}/profile`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'user-id': profileUserId
+            },
+            body: JSON.stringify({
+              role: 'user',
+              profile: {
+                status: 'not_started',
+                currentPhaseIndex: 0,
+                currentQuestionIndexInPhase: 0,
+                answers: {}
+              }
+            })
+          });
+          
+          const profileData = await response.json();
+
+          if (profileData.success && profileData.data) {
+            // Map the profile data to the expected app user format
+            // Use TagMango user ID as the primary identifier
+            const appUser = {
+              id: profileUserId, // This is now the TagMango user ID
+              tagMangoUserId: tagMangoUserId, // Store the TagMango user ID separately
+              name: finalName,
+              email: finalEmail,
+              phone: finalPhone,
+              profilePic: finalProfilePic,
+              role: profileData.data.role,
+              profile: profileData.data.profile
+            };
+            setCurrentAppUser(appUser);
+            console.log('✅ App user set successfully with TagMango user ID:', appUser);
           }
         } catch (error: any) {
           console.error('❌ Error handling external authentication:', error);
@@ -260,18 +310,57 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
               // Store the TagMango user data in state
               setTagMangoUser(platformUser);
               
-              const response = await appUserManager({
-                action: 'getOrCreateAppUser',
-                userId: platformUser.userid || platformUser.userId || platformUser.id || 'dev-user',
-                name: platformUser.name || platformUser.full_name || platformUser.displayName || 'Development User',
-                email: platformUser.email || 'dev@example.com',
-                role: 'user',
-                phone: platformUser.phone || platformUser.phoneNumber || '',
-                profilePic: platformUser.profilePic || platformUser.avatar || platformUser.picture || '',
+              // Use TagMango user ID from token for profile operations
+              const tagMangoUserId = getTagMangoUserIdFromToken(standaloneToken);
+              const fallbackUserId = platformUser.userid || platformUser.userId || platformUser.id || 'dev-user';
+              const profileUserId = tagMangoUserId || fallbackUserId;
+              
+              const userName = platformUser.name || platformUser.full_name || platformUser.displayName || 'Development User';
+              const userEmail = platformUser.email || 'dev@example.com';
+              const userPhone = platformUser.phone || platformUser.phoneNumber || '';
+              const userProfilePic = platformUser.profilePic || platformUser.avatar || platformUser.picture || '';
+              
+              console.log('👤 Standalone mode - Using user ID for profile:', {
+                tagMangoUserId,
+                fallbackUserId,
+                usingUserId: profileUserId
               });
               
-              if (response.data && response.data.appUser) {
-                setCurrentAppUser(response.data.appUser);
+              // Use custom backend for user management instead of Base44
+              const response = await fetch(`${API_BASE_URL}/profile`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'user-id': profileUserId
+                },
+                body: JSON.stringify({
+                  role: 'user',
+                  profile: {
+                    status: 'not_started',
+                    currentPhaseIndex: 0,
+                    currentQuestionIndexInPhase: 0,
+                    answers: {}
+                  }
+                })
+              });
+              
+              const profileData = await response.json();
+              
+              if (profileData.success && profileData.data) {
+                // Map the profile data to the expected app user format
+                // Use TagMango user ID as the primary identifier
+                const appUser = {
+                  id: profileUserId, // This is now the TagMango user ID
+                  tagMangoUserId: tagMangoUserId, // Store the TagMango user ID separately
+                  name: userName,
+                  email: userEmail,
+                  phone: userPhone,
+                  profilePic: userProfilePic,
+                  role: profileData.data.role,
+                  profile: profileData.data.profile
+                };
+                setCurrentAppUser(appUser);
+                console.log('✅ Standalone app user set with TagMango user ID:', appUser);
               }
               setAppUserLoading(false);
               return; // Mode determined, stop here.
