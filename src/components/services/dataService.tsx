@@ -2,13 +2,19 @@
  * Data Service with TagMango Authentication Integration
  * 
  * This service layer automatically routes API calls based on authentication status:
- * - If user is authenticated with TagMango: Uses Base44 APIs (for now, until migration)
+ * - If user is authenticated with TagMango: Uses custom backend APIs
  * - If user is not authenticated: Uses local storage fallback
  * 
  * Authentication Flow:
  * 1. Check if user is real (not anonymous)
  * 2. Check if TagMango authentication is active
- * 3. Route to appropriate data source
+ * 3. Extract TagMango user ID from JWT token
+ * 4. Route to appropriate data source (custom backend or local storage)
+ * 
+ * Migration Status:
+ * ✅ Profile APIs: Migrated to custom backend
+ * ✅ Conversation APIs: Migrated to custom backend
+ * ✅ Message APIs: Migrated to custom backend
  */
 
 import { manageConversations } from '@/api/functions';
@@ -17,6 +23,8 @@ import * as localConversationManager from '../localStorage/conversationManager';
 import * as localMessageManager from '../localStorage/messageManager';
 import { User as TagMangoAuth } from '@/api/entities';
 import { getUserProfile, updateUserProfile } from '@/api/profile';
+import * as conversationAPI from '@/api/conversations';
+import * as messageAPI from '@/api/messages';
 import type {
   User,
   UserData,
@@ -84,13 +92,39 @@ export const getAuthenticationStatus = (currentUser: User | null) => {
 // --- Conversation Services ---
 
 export const listConversations = async (currentUser: User | null): Promise<ApiResponse> => {
-    // Use Base44 APIs if user is authenticated with TagMango AND Base44 functions are available
-    if (isAuthenticatedRealUser(currentUser) && typeof manageConversations === 'function') {
-        console.log('🔐 Using Base44 API for authenticated user - listConversations');
+    // Use custom backend APIs if user is authenticated with TagMango
+    if (isAuthenticatedRealUser(currentUser)) {
+        console.log('🔐 Using custom backend API for authenticated user - listConversations');
+        
+        // Get TagMango user ID from token
+        const tagMangoUserId = getTagMangoUserId();
+        if (!tagMangoUserId) {
+            console.error('❌ No TagMango user ID found in token');
+            return localConversationManager.list();
+        }
+        
         try {
-            return manageConversations({ action: 'list', appUserId: currentUser!.id });
+            const response = await conversationAPI.getConversations(tagMangoUserId);
+            if (response.success && response.data?.conversations) {
+                // Transform to match expected format
+                return {
+                    data: {
+                        conversations: response.data.conversations.map(conv => ({
+                            id: conv.id,
+                            title: conv.title,
+                            description: conv.description,
+                            phase: conv.phase,
+                            metadata: conv.metadata,
+                            created_date: conv.created_date,
+                            updated_date: conv.updated_date,
+                            app_user_id: conv.app_user_id
+                        }))
+                    }
+                };
+            }
+            throw new Error('Invalid response format');
         } catch (error) {
-            console.error('❌ Base44 API error, falling back to local storage:', error);
+            console.error('❌ Custom backend API error, falling back to local storage:', error);
             return localConversationManager.list();
         }
     }
@@ -99,13 +133,40 @@ export const listConversations = async (currentUser: User | null): Promise<ApiRe
 };
 
 export const createConversation = async (currentUser: User | null, { title }: CreateConversationParams): Promise<ApiResponse> => {
-    // Use Base44 APIs if user is authenticated with TagMango AND Base44 functions are available
-    if (isAuthenticatedRealUser(currentUser) && typeof manageConversations === 'function') {
-        console.log('🔐 Using Base44 API for authenticated user - createConversation');
+    // Use custom backend APIs if user is authenticated with TagMango
+    if (isAuthenticatedRealUser(currentUser)) {
+        console.log('🔐 Using custom backend API for authenticated user - createConversation');
+        
+        // Get TagMango user ID from token
+        const tagMangoUserId = getTagMangoUserId();
+        if (!tagMangoUserId) {
+            console.error('❌ No TagMango user ID found in token');
+            return localConversationManager.create({ title });
+        }
+        
         try {
-            return manageConversations({ action: 'create', appUserId: currentUser!.id, title });
+            const response = await conversationAPI.createConversation(tagMangoUserId, { title });
+            if (response.success && response.data?.conversation) {
+                // Transform to match expected format
+                const conv = response.data.conversation;
+                return {
+                    data: {
+                        conversation: {
+                            id: conv.id,
+                            title: conv.title,
+                            description: conv.description,
+                            phase: conv.phase,
+                            metadata: conv.metadata,
+                            created_date: conv.created_date,
+                            updated_date: conv.updated_date,
+                            app_user_id: conv.app_user_id
+                        }
+                    }
+                };
+            }
+            throw new Error('Invalid response format');
         } catch (error) {
-            console.error('❌ Base44 API error, falling back to local storage:', error);
+            console.error('❌ Custom backend API error, falling back to local storage:', error);
             return localConversationManager.create({ title });
         }
     }
@@ -114,13 +175,40 @@ export const createConversation = async (currentUser: User | null, { title }: Cr
 };
 
 export const updateConversation = async (currentUser: User | null, { conversationId, updates }: UpdateConversationParams): Promise<ApiResponse> => {
-    // Use Base44 APIs if user is authenticated with TagMango AND Base44 functions are available
-    if (isAuthenticatedRealUser(currentUser) && typeof manageConversations === 'function') {
-        console.log('🔐 Using Base44 API for authenticated user - updateConversation');
+    // Use custom backend APIs if user is authenticated with TagMango
+    if (isAuthenticatedRealUser(currentUser)) {
+        console.log('🔐 Using custom backend API for authenticated user - updateConversation');
+        
+        // Get TagMango user ID from token
+        const tagMangoUserId = getTagMangoUserId();
+        if (!tagMangoUserId) {
+            console.error('❌ No TagMango user ID found in token');
+            return localConversationManager.update({ conversationId, updates });
+        }
+        
         try {
-            return manageConversations({ action: 'update', appUserId: currentUser!.id, conversationId, updates });
+            const response = await conversationAPI.updateConversation(tagMangoUserId, conversationId, updates);
+            if (response.success && response.data?.conversation) {
+                // Transform to match expected format
+                const conv = response.data.conversation;
+                return {
+                    data: {
+                        conversation: {
+                            id: conv.id,
+                            title: conv.title,
+                            description: conv.description,
+                            phase: conv.phase,
+                            metadata: conv.metadata,
+                            created_date: conv.created_date,
+                            updated_date: conv.updated_date,
+                            app_user_id: conv.app_user_id
+                        }
+                    }
+                };
+            }
+            throw new Error('Invalid response format');
         } catch (error) {
-            console.error('❌ Base44 API error, falling back to local storage:', error);
+            console.error('❌ Custom backend API error, falling back to local storage:', error);
             return localConversationManager.update({ conversationId, updates });
         }
     }
@@ -129,13 +217,25 @@ export const updateConversation = async (currentUser: User | null, { conversatio
 };
 
 export const deleteConversation = async (currentUser: User | null, { conversationId }: DeleteConversationParams): Promise<ApiResponse> => {
-    // Use Base44 APIs if user is authenticated with TagMango AND Base44 functions are available
-    if (isAuthenticatedRealUser(currentUser) && typeof manageConversations === 'function') {
-        console.log('🔐 Using Base44 API for authenticated user - deleteConversation');
+    // Use custom backend APIs if user is authenticated with TagMango
+    if (isAuthenticatedRealUser(currentUser)) {
+        console.log('🔐 Using custom backend API for authenticated user - deleteConversation');
+        
+        // Get TagMango user ID from token
+        const tagMangoUserId = getTagMangoUserId();
+        if (!tagMangoUserId) {
+            console.error('❌ No TagMango user ID found in token');
+            return localConversationManager.del({ conversationId });
+        }
+        
         try {
-            return manageConversations({ action: 'delete', appUserId: currentUser!.id, conversationId });
+            const response = await conversationAPI.deleteConversation(tagMangoUserId, conversationId);
+            if (response.success) {
+                return { data: { success: true, message: response.message } };
+            }
+            throw new Error('Invalid response format');
         } catch (error) {
-            console.error('❌ Base44 API error, falling back to local storage:', error);
+            console.error('❌ Custom backend API error, falling back to local storage:', error);
             return localConversationManager.del({ conversationId });
         }
     }
@@ -147,13 +247,39 @@ export const deleteConversation = async (currentUser: User | null, { conversatio
 // --- Message Services ---
 
 export const listMessages = async (currentUser: User | null, { conversationId, cursor, limit }: ListMessagesParams): Promise<ApiResponse> => {
-    // Use Base44 APIs if user is authenticated with TagMango AND Base44 functions are available
-    if (isAuthenticatedRealUser(currentUser) && typeof manageMessages === 'function') {
-        console.log('🔐 Using Base44 API for authenticated user - listMessages');
+    // Use custom backend APIs if user is authenticated with TagMango
+    if (isAuthenticatedRealUser(currentUser)) {
+        console.log('🔐 Using custom backend API for authenticated user - listMessages');
+        
+        // Get TagMango user ID from token
+        const tagMangoUserId = getTagMangoUserId();
+        if (!tagMangoUserId) {
+            console.error('❌ No TagMango user ID found in token');
+            return localMessageManager.list({ conversationId });
+        }
+        
         try {
-            return manageMessages({ action: 'list', appUserId: currentUser!.id, conversationId, cursor, limit });
+            const response = await messageAPI.getMessages(tagMangoUserId, conversationId, cursor as string, limit);
+            if (response.success && response.data?.messages) {
+                // Transform to match expected format
+                return {
+                    data: {
+                        messages: response.data.messages.map(msg => ({
+                            id: msg.id,
+                            conversationId: msg.conversationId,
+                            text: msg.content, // Map content to text for frontend compatibility
+                            sender: msg.role === 'assistant' ? 'ai' : msg.role, // Map role to sender
+                            created_date: msg.created_date,
+                            metadata: msg.metadata
+                        })),
+                        hasMore: response.data.hasMore,
+                        nextCursor: response.data.nextCursor
+                    }
+                };
+            }
+            throw new Error('Invalid response format');
         } catch (error) {
-            console.error('❌ Base44 API error, falling back to local storage:', error);
+            console.error('❌ Custom backend API error, falling back to local storage:', error);
             return localMessageManager.list({ conversationId });
         }
     }
@@ -162,13 +288,38 @@ export const listMessages = async (currentUser: User | null, { conversationId, c
 };
 
 export const createMessage = async (currentUser: User | null, { conversationId, content, role, metadata }: CreateMessageParams): Promise<ApiResponse> => {
-    // Use Base44 APIs if user is authenticated with TagMango AND Base44 functions are available
-    if (isAuthenticatedRealUser(currentUser) && typeof manageMessages === 'function') {
-        console.log('🔐 Using Base44 API for authenticated user - createMessage');
+    // Use custom backend APIs if user is authenticated with TagMango
+    if (isAuthenticatedRealUser(currentUser)) {
+        console.log('🔐 Using custom backend API for authenticated user - createMessage');
+        
+        // Get TagMango user ID from token
+        const tagMangoUserId = getTagMangoUserId();
+        if (!tagMangoUserId) {
+            console.error('❌ No TagMango user ID found in token');
+            return localMessageManager.create({ conversationId, text: content, sender: role === 'assistant' ? 'ai' : role, metadata });
+        }
+        
         try {
-            return manageMessages({ action: 'create', appUserId: currentUser!.id, conversationId, content, role, metadata });
+            const response = await messageAPI.createMessage(tagMangoUserId, { conversationId, content, role, metadata });
+            if (response.success && response.data?.message) {
+                // Transform to match expected format
+                const msg = response.data.message;
+                return {
+                    data: {
+                        message: {
+                            id: msg.id,
+                            conversationId: msg.conversationId,
+                            text: msg.content, // Map content to text for frontend compatibility
+                            sender: msg.role === 'assistant' ? 'ai' : msg.role, // Map role to sender
+                            created_date: msg.created_date,
+                            metadata: msg.metadata
+                        }
+                    }
+                };
+            }
+            throw new Error('Invalid response format');
         } catch (error) {
-            console.error('❌ Base44 API error, falling back to local storage:', error);
+            console.error('❌ Custom backend API error, falling back to local storage:', error);
             return localMessageManager.create({ conversationId, text: content, sender: role === 'assistant' ? 'ai' : role, metadata });
         }
     }
@@ -178,13 +329,38 @@ export const createMessage = async (currentUser: User | null, { conversationId, 
 };
 
 export const updateMessage = async (currentUser: User | null, { messageId, updates, conversationId }: UpdateMessageParams): Promise<ApiResponse> => {
-    // Use Base44 APIs if user is authenticated with TagMango AND Base44 functions are available
-    if (isAuthenticatedRealUser(currentUser) && typeof manageMessages === 'function') {
-        console.log('🔐 Using Base44 API for authenticated user - updateMessage');
+    // Use custom backend APIs if user is authenticated with TagMango
+    if (isAuthenticatedRealUser(currentUser)) {
+        console.log('🔐 Using custom backend API for authenticated user - updateMessage');
+        
+        // Get TagMango user ID from token
+        const tagMangoUserId = getTagMangoUserId();
+        if (!tagMangoUserId) {
+            console.error('❌ No TagMango user ID found in token');
+            return localMessageManager.update({ conversationId: conversationId || '', messageId, updates });
+        }
+        
         try {
-            return manageMessages({ action: 'update', appUserId: currentUser!.id, messageId, updates });
+            const response = await messageAPI.updateMessage(tagMangoUserId, messageId, updates);
+            if (response.success && response.data?.message) {
+                // Transform to match expected format
+                const msg = response.data.message;
+                return {
+                    data: {
+                        message: {
+                            id: msg.id,
+                            conversationId: msg.conversationId,
+                            text: msg.content, // Map content to text for frontend compatibility
+                            sender: msg.role === 'assistant' ? 'ai' : msg.role, // Map role to sender
+                            created_date: msg.created_date,
+                            metadata: msg.metadata
+                        }
+                    }
+                };
+            }
+            throw new Error('Invalid response format');
         } catch (error) {
-            console.error('❌ Base44 API error, falling back to local storage:', error);
+            console.error('❌ Custom backend API error, falling back to local storage:', error);
             return localMessageManager.update({ conversationId: conversationId || '', messageId, updates });
         }
     }
