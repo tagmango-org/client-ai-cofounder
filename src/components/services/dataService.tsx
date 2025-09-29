@@ -17,8 +17,6 @@
  * ✅ Message APIs: Migrated to custom backend
  */
 
-import { manageConversations } from '@/api/functions';
-import { manageMessages } from '@/api/functions';
 import * as localConversationManager from '../localStorage/conversationManager';
 import * as localMessageManager from '../localStorage/messageManager';
 import { User as TagMangoAuth } from '@/api/entities';

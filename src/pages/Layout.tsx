@@ -145,11 +145,20 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
     let anonymousModeTimer: NodeJS.Timeout | undefined;
 
     const handleMessage = async (event: MessageEvent): Promise<void> => {
-      console.log('Received message:', {
-        origin: event.origin,
-        type: event.data?.type,
-        data: event.data
-      });
+      // Only log authentication-related messages to prevent console spam
+      const isAuthMessage = event.data && (
+        event.data.type === 'AUTHENTICATE_USER' ||
+        event.data.type === 'AI_ASSISTANT_AUTHENTICATE_USER' ||
+        event.data.type === 'AI_ASSISTANT_ACTION.AUTHENTICATE_USER'
+      );
+
+      if (isAuthMessage) {
+        console.log('Received authentication message:', {
+          origin: event.origin,
+          type: event.data?.type,
+          data: event.data
+        });
+      }
 
       // Security: Uncomment and modify this line to restrict origins in production
       // if (!['http://localhost:3001', 'https://your-production-domain.com'].includes(event.origin)) {
@@ -158,12 +167,7 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
       // }
 
       // Fix: Check for the correct message type that parent is sending
-      if (event.data && (
-        event.data.type === 'AUTHENTICATE_USER' ||
-        event.data.type === 'AI_ASSISTANT_AUTHENTICATE_USER' ||
-        // Add your actual constant value here
-        event.data.type === 'AI_ASSISTANT_ACTION.AUTHENTICATE_USER'
-      )) {
+      if (isAuthMessage) {
 
         console.log('✅ Authentication message received from parent:', event.data.data);
         externalAuthReceived = true;

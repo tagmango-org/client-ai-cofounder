@@ -118,7 +118,7 @@ const MessageBubble: React.FC<MessageBubbleProps | any> = ({ msg, thinkingMessag
 
             {/* Action Buttons */}
             <div className="mt-4 flex flex-wrap gap-3">
-                {msg.courseStructure && renderCreateButton('course', msg.courseStructure, <BookOpen className="w-4 h-4" />, 'Create Course', 'AI_ASSISTANT_CREATE_COURSE')}
+                {msg.courseStructure?.title && renderCreateButton('course', msg.courseStructure, <BookOpen className="w-4 h-4" />, 'Create Course', 'AI_ASSISTANT_CREATE_COURSE')}
                 {msg.couponStructure && renderCreateButton('coupon', msg.couponStructure, <ShoppingBag className="w-4 h-4" />, 'Create Coupon', 'AI_ASSISTANT_CREATE_COUPON')}
                 {msg.postStructure && renderCreateButton('post', msg.postStructure, <Zap className="w-4 h-4" />, 'Create Post', 'AI_ASSISTANT_CREATE_FEED_POST')}
                 {msg.serviceStructure && renderCreateButton('service', msg.serviceStructure, <Users className="w-4 h-4" />, 'Create Service', 'AI_ASSISTANT_CREATE_MANGO')}
