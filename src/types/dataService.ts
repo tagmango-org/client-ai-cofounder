@@ -12,10 +12,16 @@ export interface User {
 
 export interface UserData {
   userId: string;
-  name: string;
   email: string;
-  phone: string;
-  profilePic: string;
+  full_name: string;
+  name?: string; // Keep for backward compatibility
+  phone?: string;
+  profilePic?: string;
+  disabled?: boolean | null;
+  is_verified: boolean;
+  app_id: string;
+  is_service: boolean;
+  _app_role: string;
   role?: string;
 }
 

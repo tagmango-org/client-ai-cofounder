@@ -1,11 +1,8 @@
-import { base44 } from './base44Client';
 import tagMangoAuth from './auth';
+import KnowledgeArticleService from './knowledgeArticle';
 
-
-export const KnowledgeArticle = base44.entities.KnowledgeArticle;
-
-
-
+// Independent KnowledgeArticle implementation (replacing Base44)
+export const KnowledgeArticle = KnowledgeArticleService;
 
 // Custom TagMango auth (replacing base44.auth):
 export const User = tagMangoAuth;

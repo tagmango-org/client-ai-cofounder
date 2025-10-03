@@ -83,7 +83,7 @@ export const getAuthenticationStatus = (currentUser: User | null) => {
     isTagMangoAuthenticated: tagMangoAuth,
     isFullyAuthenticated: authenticated,
     userId: currentUser?.id || 'none',
-    apiSource: authenticated ? 'Base44 APIs' : 'Local Storage'
+    apiSource: authenticated ? 'Custom Backend APIs' : 'Local Storage'
   };
 };
 
@@ -467,6 +467,14 @@ export const getOrCreateAppUser = async (userData: UserData): Promise<ApiRespons
     // If profile doesn't exist, create it using the TagMango user ID
     try {
         const newProfile = {
+            userId: tagMangoUserId,
+            email: userData.email,
+            full_name: userData.full_name,
+            disabled: userData.disabled || null,
+            is_verified: userData.is_verified,
+            app_id: userData.app_id,
+            is_service: userData.is_service,
+            _app_role: userData._app_role,
             role: userData.role || 'user',
             profile: {
                 status: 'not_started',

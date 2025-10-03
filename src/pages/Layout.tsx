@@ -306,7 +306,8 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
             logTokenInfo(standaloneToken);
             
             // Authenticate with TagMango using the token
-            const platformUser = await User.authenticate(standaloneToken);
+            const authUser = await User.authenticate(standaloneToken)
+            const platformUser = authUser.result;
             
             if (platformUser) {
               console.log('🔄 Using TagMango standalone user data:', platformUser);
@@ -322,7 +323,7 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
               const userName = platformUser.name || platformUser.full_name || platformUser.displayName || 'Development User';
               const userEmail = platformUser.email || 'dev@example.com';
               const userPhone = platformUser.phone || platformUser.phoneNumber || '';
-              const userProfilePic = platformUser.profilePic || platformUser.avatar || platformUser.picture || '';
+              const userProfilePic = platformUser.profilePicUrl || platformUser.avatar || platformUser.picture || '';
               
               console.log('👤 Standalone mode - Using user ID for profile:', {
                 tagMangoUserId,
@@ -330,6 +331,24 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
                 usingUserId: profileUserId
               });
               
+              const newProfile = {
+                userId: tagMangoUserId,
+                email: userEmail,
+                full_name: userName,
+                name: userName,
+                phone: userPhone || '',
+                profilePic: userProfilePic || '',
+                disabled: null,
+                is_verified: false,
+                _app_role: 'user',
+                role:  'user',
+                profile: {
+                    status: 'not_started',
+                    currentPhaseIndex: 0,
+                    currentQuestionIndexInPhase: 0,
+                    answers: {}
+                }
+            };
               // Use custom backend for user management instead of Base44
               const response = await fetch(`${API_BASE_URL}/profile`, {
                 method: 'PUT',
@@ -337,18 +356,11 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
                   'Content-Type': 'application/json',
                   'user-id': profileUserId
                 },
-                body: JSON.stringify({
-                  role: 'user',
-                  profile: {
-                    status: 'not_started',
-                    currentPhaseIndex: 0,
-                    currentQuestionIndexInPhase: 0,
-                    answers: {}
-                  }
-                })
+                body: JSON.stringify(newProfile)
               });
               
               const profileData = await response.json();
+              console.log(profileData)
               
               if (profileData.success && profileData.data) {
                 // Map the profile data to the expected app user format

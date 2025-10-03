@@ -1,28 +1,57 @@
-import { base44 } from './base44Client';
+// Independent API integrations (replacing Base44)
+// Import from our custom OpenAI API implementation
+import { 
+  InvokeLLM, 
+  GenerateTitle, 
+  GeneratePhaseInsights, 
+  GenerateProfileSynthesis,
+  UploadFile,
+  ExtractDataFromUploadedFile
+} from './openai';
 
+// Export the integrations to maintain compatibility
+export { 
+  InvokeLLM, 
+  GenerateTitle, 
+  GeneratePhaseInsights, 
+  GenerateProfileSynthesis,
+  UploadFile,
+  ExtractDataFromUploadedFile
+};
 
+// Placeholder implementations for Base44 integrations not yet implemented
+export const SendEmail = async (params: any): Promise<any> => {
+  console.warn('SendEmail not yet implemented - using placeholder');
+  throw new Error('SendEmail not yet implemented');
+};
 
+export const GenerateImage = async (params: any): Promise<any> => {
+  console.warn('GenerateImage not yet implemented - using placeholder');
+  throw new Error('GenerateImage not yet implemented');
+};
 
-export const Core = base44.integrations.Core;
+export const CreateFileSignedUrl = async (params: any): Promise<any> => {
+  console.warn('CreateFileSignedUrl not yet implemented - using placeholder');
+  throw new Error('CreateFileSignedUrl not yet implemented');
+};
 
-export const InvokeLLM = base44.integrations.Core.InvokeLLM;
+export const UploadPrivateFile = async (params: any): Promise<any> => {
+  console.warn('UploadPrivateFile not yet implemented - using placeholder');
+  throw new Error('UploadPrivateFile not yet implemented');
+};
 
-export const SendEmail = base44.integrations.Core.SendEmail;
-
-export const UploadFile = base44.integrations.Core.UploadFile;
-
-export const GenerateImage = base44.integrations.Core.GenerateImage;
-
-export const ExtractDataFromUploadedFile = base44.integrations.Core.ExtractDataFromUploadedFile;
-
-export const CreateFileSignedUrl = base44.integrations.Core.CreateFileSignedUrl;
-
-export const UploadPrivateFile = base44.integrations.Core.UploadPrivateFile;
-
-export const GenerateTitle = base44.integrations.Core.GenerateTitle;
-
-export const GeneratePhaseInsights = base44.integrations.Core.GeneratePhaseInsights;
-
-export const GenerateProfileSynthesis = base44.integrations.Core.GenerateProfileSynthesis;
+// Core object to maintain compatibility with existing code
+export const Core = {
+  InvokeLLM,
+  GenerateTitle,
+  GeneratePhaseInsights,
+  GenerateProfileSynthesis,
+  UploadFile,
+  ExtractDataFromUploadedFile,
+  SendEmail,
+  GenerateImage,
+  CreateFileSignedUrl,
+  UploadPrivateFile
+};
 
 

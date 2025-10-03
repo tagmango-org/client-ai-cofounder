@@ -57,11 +57,11 @@ const SynthesisCard = ({ icon, title, text, delay }: SynthesisCardProps) => (
 
 export default function ProfilePage() {
   const {
-    currentAppUser: currentAppUserProfile,
+    currentAppUser,
     setCurrentAppUser: setcurrentAppUserProfileProfile,
     appUserLoading,
   } = useAppUser();
-  const user = currentAppUserProfile;
+  const user = currentAppUser;
   const [discoveryState, setDiscoveryState] = useState<any>(null);
   const [synthesis, setSynthesis] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
@@ -75,13 +75,13 @@ export default function ProfilePage() {
   }, [discoveryState]);
 
   useEffect(() => {
-    if (currentAppUserProfile) {
+    if (currentAppUser) {
       setDiscoveryState(
-        (currentAppUserProfile as any)?.profile || { status: "not_started", answers: {} }
+        (currentAppUser as any)?.profile || { status: "not_started", answers: {} }
       );
       setEditedName((user as any)?.name || "");
     }
-  }, [currentAppUserProfile, user]);
+  }, [currentAppUser, user]);
 
   useEffect(() => {
     const generateProfileSynthesis = async (answers: any) => {
@@ -146,8 +146,8 @@ Respond with ONLY a JSON object in this exact format:
 
   const handleSaveEdit = async () => {
     if (
-      !currentAppUserProfile ||
-      editedName.trim() === (currentAppUserProfile as any)?.name
+      !currentAppUser ||
+      editedName.trim() === (currentAppUser as any)?.name
     ) {
       setIsEditing(false);
       return;
@@ -155,17 +155,24 @@ Respond with ONLY a JSON object in this exact format:
 
     try {
      const data =await dataService.getOrCreateAppUser({
-        userId: (currentAppUserProfile as any)?.userId || '',
-        name: editedName.trim(),
-        email: (currentAppUserProfile as any)?.email || '',
-        phone: (currentAppUserProfile as any)?.phone || '',
-        profilePic: (currentAppUserProfile as any)?.profilePic || '',
+        userId: (currentAppUser as any)?.userId || '',
+        email: (currentAppUser as any)?.email || '',
+        full_name: editedName.trim(),
+        name: editedName.trim(), // Keep for backward compatibility
+        phone: (currentAppUser as any)?.phone || '',
+        profilePic: (currentAppUser as any)?.profilePic || '',
+        disabled: (currentAppUser as any)?.disabled || null,
+        is_verified: (currentAppUser as any)?.is_verified || false,
+        app_id: (currentAppUser as any)?.app_id || '',
+        is_service: (currentAppUser as any)?.is_service || false,
+        _app_role: (currentAppUser as any)?._app_role || 'user',
+        role: (currentAppUser as any)?.role || 'user',
       });
       setcurrentAppUserProfileProfile(data.data.appUser);
     } catch (error) {
       console.error("Failed to update user name:", error);
       // Optionally revert name or show an error toast
-      setEditedName((currentAppUserProfile as any)?.name || '');
+      setEditedName((currentAppUser as any)?.name || '');
     } finally {
       setIsEditing(false);
     }
@@ -179,7 +186,7 @@ Respond with ONLY a JSON object in this exact format:
     );
   }
 
-  if (!currentAppUserProfile) {
+  if (!currentAppUser) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white">
         Could not load user profile. Please try again later.
@@ -187,8 +194,8 @@ Respond with ONLY a JSON object in this exact format:
     );
   }
 
-  const userInitial = (currentAppUserProfile as any)?.name
-    ? (currentAppUserProfile as any).name.charAt(0).toUpperCase()
+  const userInitial = (currentAppUser as any)?.name
+    ? (currentAppUser as any).name.charAt(0).toUpperCase()
     : "U";
 
   return (
@@ -201,10 +208,10 @@ Respond with ONLY a JSON object in this exact format:
           className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10"
         >
           <div className="flex items-center gap-4">
-            {(currentAppUserProfile as any)?.profilePic ? (
+            {(currentAppUser as any)?.profilePic ? (
               <img
-                src={(currentAppUserProfile as any).profilePic}
-                alt={(currentAppUserProfile as any)?.name || 'User'}
+                src={(currentAppUser as any).profilePic}
+                alt={(currentAppUser as any)?.name || 'User'}
                 className="w-16 h-16 rounded-full object-cover border-2 border-gray-700"
               />
             ) : (
@@ -221,10 +228,10 @@ Respond with ONLY a JSON object in this exact format:
                 />
               ) : (
                 <h1 className="text-2xl md:text-3xl font-bold">
-                  {(currentAppUserProfile as any)?.name || 'User'}
+                  {(currentAppUser as any)?.name || 'User'}
                 </h1>
               )}
-              <p className="text-gray-400">{(currentAppUserProfile as any)?.email || ''}</p>
+              <p className="text-gray-400">{(currentAppUser as any)?.email || ''}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 mt-4 md:mt-0">
