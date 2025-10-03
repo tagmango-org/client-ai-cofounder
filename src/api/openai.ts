@@ -3,8 +3,9 @@ export const API_BASE_URL =  'http://localhost:5050/api';
 
 // Type definitions for API functions
 interface InvokeLLMParams {
-  prompt: string;
-  response_json_schema: any;
+  userMessage: string;
+  conversationHistory: any[];
+  discoveryAnswers: any;
 }
 
 interface GenerateTitleParams {
@@ -22,7 +23,7 @@ interface GenerateProfileSynthesisParams {
 }
 
 // Main LLM function to replace InvokeLLM
-export const InvokeLLM = async ({ prompt, response_json_schema }: InvokeLLMParams) => {
+export const InvokeLLM = async ({ userMessage, conversationHistory, discoveryAnswers }: InvokeLLMParams) => {
   try {
     const response = await fetch(`${API_BASE_URL}/generate/llm`, {
       method: 'POST',
@@ -30,8 +31,9 @@ export const InvokeLLM = async ({ prompt, response_json_schema }: InvokeLLMParam
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        prompt,
-        response_json_schema
+        userMessage,
+        conversationHistory,
+        discoveryAnswers
       })
     });
 

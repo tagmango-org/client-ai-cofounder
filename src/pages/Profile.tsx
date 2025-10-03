@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as dataService from "@/components/services/dataService";
-import { InvokeLLM } from "@/api/integrations";
+import { GenerateProfileSynthesis } from "@/api/openai";
 
 const synthèseIcons = {
   niche_clarity: <Target className="w-6 h-6 text-white" />,
@@ -108,27 +108,8 @@ Respond with ONLY a JSON object in this exact format:
 }`;
 
       try {
-        const response = await InvokeLLM({
-          prompt: synthesisPrompt,
-          response_json_schema: {
-            type: "object",
-            properties: {
-              niche_clarity: { type: "string" },
-              personality_type: { type: "string" },
-              core_motivation: { type: "string" },
-              primary_strength: { type: "string" },
-              growth_edge: { type: "string" },
-              business_stage: { type: "string" },
-            },
-            required: [
-              "niche_clarity",
-              "personality_type",
-              "core_motivation",
-              "primary_strength",
-              "growth_edge",
-              "business_stage",
-            ],
-          },
+        const response = await GenerateProfileSynthesis({
+          answers: answers
         });
         setSynthesis(response);
       } catch (error) {
