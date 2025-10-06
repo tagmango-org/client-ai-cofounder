@@ -1,7 +1,8 @@
+import { User } from '@/types/dataService';
 import { createContext, useContext } from 'react';
 
 interface AppUserContextType {
-    currentAppUser: any;
+    currentAppUser: User | null;
     setCurrentAppUser: (user: any) => void;
     appUserLoading: boolean;
     tagMangoUser: any;

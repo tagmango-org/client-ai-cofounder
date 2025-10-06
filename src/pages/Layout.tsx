@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '@/api/entities';
 import { ThemeProvider } from '../components/ThemeProvider';
-import { AppUserContext } from '../components/AppUserContext';
+import { AppUserContext, useAppUser } from '../components/AppUserContext';
 import { getAuthToken, logTokenInfo } from '../utils/tokenUtil';
 import { API_BASE_URL } from '@/api/openai';
 
@@ -136,9 +136,9 @@ function LayoutContent({ children, currentPageName }: LayoutContentProps) {
 }
 
 export default function Layout({ children, currentPageName }: LayoutProps) {
-  const [currentAppUser, setCurrentAppUser] = useState<AppUser | null>(null);
   const [appUserLoading, setAppUserLoading] = useState<boolean>(true);
   const [tagMangoUser, setTagMangoUser] = useState<any>(null);
+  const [currentAppUser, setCurrentAppUser] = useState<AppUser | null>(null);
 
   useEffect(() => {
     let externalAuthReceived: boolean = false;
@@ -241,7 +241,7 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
 
           // Use custom backend for user management instead of Base44
           const response = await fetch(`${API_BASE_URL}/profile`, {
-            method: 'PUT',
+            method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'user-id': profileUserId
@@ -351,7 +351,7 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
             };
               // Use custom backend for user management instead of Base44
               const response = await fetch(`${API_BASE_URL}/profile`, {
-                method: 'PUT',
+                method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                   'user-id': profileUserId

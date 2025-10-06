@@ -1,13 +1,22 @@
-// DataService types for API and local storage operations
+type UserStatus = "not_started" | "in_progress" | "completed";
+type UserRole = "user" | "admin";
 
-// User types
+export interface UserProfile {
+  status: UserStatus;
+  currentPhaseIndex: number;
+  currentQuestionIndexInPhase: number;
+  answers: any;
+}
+
 export interface User {
   id: string;
-  name?: string;
-  email?: string;
-  phone?: string;
-  profilePic?: string;
-  profile?: any;
+  tagMangoUserId: string;
+  name: string;
+  email: string;
+  phone: number;
+  profilePic: string;
+  role: UserRole;
+  profile: UserProfile;
 }
 
 export interface UserData {
@@ -24,6 +33,7 @@ export interface UserData {
   _app_role: string;
   role?: string;
 }
+
 
 // Conversation types
 export interface Conversation {

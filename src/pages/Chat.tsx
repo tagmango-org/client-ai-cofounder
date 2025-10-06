@@ -776,9 +776,9 @@ export default function Chat() {
     const [initialLoading, setInitialLoading] = useState<boolean>(true);
     
   const {
-    currentAppUser: currentAppUserProfile,
+    currentAppUser,
     appUserLoading,
-    setCurrentAppUser: setcurrentAppUserProfileProfile,
+    setCurrentAppUser,
   } = useAppUser();
 
     const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
@@ -847,7 +847,7 @@ export default function Chat() {
             });
 
             if (response.data.success) {
-                setcurrentAppUserProfileProfile(response.data.appUser);
+                setCurrentAppUser(response.data.appUser);
                 console.log("Dev admin user created/retrieved:", response.data.appUser);
             } else {
                 console.error("Failed to create dev admin user:", response.data);
@@ -935,11 +935,11 @@ export default function Chat() {
     conversationId: string,
     loadOlder: boolean = false
   ): Promise<void> => {
-        if (!isRealUser(currentAppUserProfile) && loadOlder) return;
+        if (!isRealUser(currentAppUser) && loadOlder) return;
 
         setIsLoadingMore(true);
         try {
-            const response = await dataService.listMessages(currentAppUserProfile, {
+            const response = await dataService.listMessages(currentAppUser, {
                 conversationId: conversationId,
         cursor:
           loadOlder && messages.length > 0 ? messages[0].created_date : null,
@@ -1001,13 +1001,13 @@ export default function Chat() {
             
             try {
         const convResponse = await dataService.listConversations(
-          currentAppUserProfile
+          currentAppUser
         );
                 const fetchedConversations = convResponse?.data?.conversations || [];
 
-                if (isRealUser(currentAppUserProfile)) {
+                if (isRealUser(currentAppUser)) {
           const userProfile: any =
-            (currentAppUserProfile as any)?.profile || {};
+            (currentAppUser as any)?.profile || {};
                     setDiscoveryState({
                         ...DEFAULT_DISCOVERY_STATE,
                         ...userProfile,
@@ -1027,7 +1027,7 @@ export default function Chat() {
                 // Or if we just authenticated and there are no existing convos for this user.
         if (
           fetchedConversations.length === 0 ||
-          (isRealUser(currentAppUserProfile) && !activeConversation)
+          (isRealUser(currentAppUser) && !activeConversation)
         ) {
                     await handleNewConversation();
                 } else if (!activeConversation && fetchedConversations.length > 0) {
@@ -1043,9 +1043,9 @@ export default function Chat() {
             }
         };
 
-        // This useEffect will now trigger whenever currentAppUserProfile changes (including from null/anonymous to authenticated)
+        // This useEffect will now trigger whenever currentAppUser changes (including from null/anonymous to authenticated)
         initApp();
-    }, [currentAppUserProfile, appUserLoading, knowledgeArticlesCached]);
+    }, [currentAppUser, appUserLoading, knowledgeArticlesCached]);
 
     useEffect(() => {
         let intervalId: NodeJS.Timeout;
@@ -1091,7 +1091,7 @@ export default function Chat() {
             const newTitle = await GenerateTitle({ userText, aiText });
 
             if (newTitle && conversationId) {
-                await dataService.updateConversation(currentAppUserProfile, {
+                await dataService.updateConversation(currentAppUser, {
                     conversationId: conversationId,
           updates: { title: newTitle },
         });
@@ -1116,7 +1116,7 @@ export default function Chat() {
     const content = String(userMessageOverride || message || "");
         if (!content.trim() || !activeConversation || isTyping) return;
         
-        if (!currentAppUserProfile) {
+        if (!currentAppUser) {
             alert("Please wait for the app to initialize.");
             return;
         }
@@ -1136,7 +1136,7 @@ export default function Chat() {
         if ((currentConv as any).isTemporary) {
             shouldGenerateTitle = true;
       const createConvResponse = await dataService.createConversation(
-        currentAppUserProfile,
+        currentAppUser,
         { title: "New Conversation" }
       );
             const newConversationRecord = createConvResponse.data.conversation;
@@ -1157,7 +1157,7 @@ export default function Chat() {
         };
 
     const createUserMsgResponse = await dataService.createMessage(
-      currentAppUserProfile,
+      currentAppUser,
       {
             conversationId: currentConv.id,
             content: userMessageText,
@@ -1232,7 +1232,7 @@ export default function Chat() {
       }
 
       const createAiMsgResponse = await dataService.createMessage(
-        currentAppUserProfile,
+        currentAppUser,
         {
                 conversationId: currentConv.id,
                 content: formattedResponse,
@@ -1375,7 +1375,7 @@ export default function Chat() {
 
             const formattedResponse = formatAIResponse(aiMessageText);
 
-            await dataService.updateMessage(currentAppUserProfile, {
+            await dataService.updateMessage(currentAppUser, {
                 messageId: messageToRegenerate.id,
                 updates: { text: formattedResponse },
         conversationId: activeConversation.id, // Pass convId for local storage
@@ -1473,7 +1473,7 @@ export default function Chat() {
         }
 
         try {
-      await dataService.deleteConversation(currentAppUserProfile, {
+      await dataService.deleteConversation(currentAppUser, {
         conversationId,
       });
 
@@ -1516,7 +1516,7 @@ export default function Chat() {
         const trimmedTitle = newTitle.trim();
 
         try {
-            await dataService.updateConversation(currentAppUserProfile, {
+            await dataService.updateConversation(currentAppUser, {
                 conversationId: id,
         updates: { title: trimmedTitle },
       });
@@ -1556,8 +1556,8 @@ export default function Chat() {
         };
         setDiscoveryState(stateWithAnswers);
         
-        if (isRealUser(currentAppUserProfile)) {
-            await dataService.updateProfile(currentAppUserProfile, stateWithAnswers);
+        if (isRealUser(currentAppUser)) {
+            await dataService.updateProfile(currentAppUser, stateWithAnswers);
         }
     };
 
@@ -1897,7 +1897,7 @@ I now have your complete coaching blueprint and will use it to provide deeply pe
       hasMoreMessages &&
       !isLoadingMore &&
       activeConversation &&
-      isRealUser(currentAppUserProfile)
+      isRealUser(currentAppUser)
     ) {
             loadMessages(activeConversation.id, true);
         }
@@ -1957,7 +1957,7 @@ I now have your complete coaching blueprint and will use it to provide deeply pe
                 onNewConversation={handleNewConversationClick}
                 isCollapsed={sidebarCollapsed}
                 onToggleCollapse={toggleSidebar}
-                user={currentAppUserProfile}
+                user={currentAppUser}
                 onDeleteConversation={handleDeleteConversation}
                 onRenameConversation={handleStartRename}
                 discoveryState={discoveryState}
@@ -2270,13 +2270,13 @@ I now have your complete coaching blueprint and will use it to provide deeply pe
                                     }
                                     className="flex-1 min-h-[24px] max-h-[120px] resize-none bg-transparent border-0 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none px-3 py-2 text-base leading-relaxed"
                                     rows={1}
-                                    disabled={isTyping || !currentAppUserProfile}
+                                    disabled={isTyping || !currentAppUser}
                                 />
                                 
                                 <Button
                                     onClick={() => handleSendMessage()}
                   disabled={
-                    isTyping || !message.trim() || !currentAppUserProfile
+                    isTyping || !message.trim() || !currentAppUser
                   }
                                     className="bg-[var(--accent-orange)] hover:bg-[var(--accent-orange-hover)] disabled:opacity-50 disabled:hover:bg-[var(--accent-orange)] text-white h-10 w-10 p-0 rounded-full flex-shrink-0 flex items-center justify-center"
                                 >

@@ -1,15 +1,12 @@
+import { User } from "./dataService";
+
 export interface Conversation {
   id: string;
   title: string;
   created_date?: string;
 }
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-}
+
 
 export interface DiscoveryState {
   status: 'not_started' | 'in_progress' | 'paused' | 'completed';
