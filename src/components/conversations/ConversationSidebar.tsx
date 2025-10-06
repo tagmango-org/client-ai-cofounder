@@ -1,21 +1,17 @@
 
-import React, { useState, useMemo } from 'react';
+import React, {  } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Plus, Wand2, Zap, User as UserIcon, Moon, Sun, Library, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useTheme } from '../ThemeProvider';
 import PremiumLogo from '../PremiumLogo';
 import ConversationSkeleton from './ConversationSkeleton';
 import type { 
   ConversationListProps, 
-  ConversationSidebarProps, 
-  Conversation,
-  User,
-  DiscoveryState
-} from '@/types/conversation';
+  ConversationSidebarProps } from '@/types/conversation';
 
 // Define ConversationList as a sub-component
 const ConversationList: React.FC<ConversationListProps> = ({ conversations, activeConversation, onSelectConversation, onDeleteConversation, onRenameConversation, isCollapsed }) => {
