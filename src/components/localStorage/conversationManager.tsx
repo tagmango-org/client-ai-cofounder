@@ -45,41 +45,31 @@ const CONVERSATIONS_KEY = 'anonymous_conversations';
 
 const generateLocalId = (): string => `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-// Helper to get all conversations from localStorage with comprehensive error handling
 const getConversations = (): Conversation[] => {
   try {
-    // Wrap localStorage.getItem() in try/catch to handle Error Code 5 access violations
     const rawData = localStorage.getItem(CONVERSATIONS_KEY);
     if (!rawData) {
       return [];
     }
     return JSON.parse(rawData) as Conversation[];
   } catch (error) {
-    console.error("Error reading conversations from localStorage:", error);
-    // If localStorage is completely inaccessible, return empty array to prevent crash
     return [];
   }
 };
 
-// Helper to save all conversations to localStorage with comprehensive error handling
 const saveConversations = (conversations: Conversation[]): void => {
   try {
-    // Wrap localStorage.setItem() in try/catch to handle Error Code 5 access violations
     localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(conversations));
   } catch (error) {
-    console.error("Error saving conversations to localStorage:", error);
-    // Silently fail if localStorage is inaccessible - app continues in memory-only mode
   }
 };
 
 export const list = async (): Promise<ListResponse> => {
   const conversations = getConversations();
-  // Filter out any non-object or null entries, and ensure created_date exists before sorting
   const cleanConversations = conversations.filter((c: any) => typeof c === 'object' && c !== null && c.created_date);
   const sortedConversations = cleanConversations.sort((a: Conversation, b: Conversation) => {
     const dateA = new Date(a.created_date).getTime();
     const dateB = new Date(b.created_date).getTime();
-    // Handle invalid dates by pushing them to the end
     if (isNaN(dateA)) return 1;
     if (isNaN(dateB)) return -1;
     return dateB - dateA;
@@ -115,11 +105,9 @@ export const del = async ({ conversationId }: DeleteParams): Promise<DeleteRespo
   const filteredConversations = conversations.filter((c: Conversation) => c.id !== conversationId);
   saveConversations(filteredConversations);
   
-  // Also remove associated messages with comprehensive error handling
   try {
     localStorage.removeItem(`anonymous_messages_${conversationId}`);
   } catch (error) {
-    console.error(`Error removing messages for conversation ${conversationId}:`, error);
     // Continue execution even if removeItem fails
   }
   

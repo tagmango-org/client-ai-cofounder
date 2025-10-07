@@ -78,8 +78,6 @@ function LayoutContent({ children, currentPageName }: LayoutContentProps) {
       try {
         const currentUser = await User.me();
         setUser(currentUser);
-      } catch (error) {
-        console.log('User not authenticated');
       } finally {
         setLoading(false);
       }
@@ -110,7 +108,6 @@ function LayoutContent({ children, currentPageName }: LayoutContentProps) {
     );
   }
 
-  // For Profile page, show admin layout for admins, regular layout for users
   if (currentPageName === 'Profile') {
     if (user && user.role === 'admin') {
       const AdminLayout = React.lazy(() => import('../components/AdminLayout'));
@@ -127,7 +124,6 @@ function LayoutContent({ children, currentPageName }: LayoutContentProps) {
     return <div className="min-h-screen bg-[var(--bg-primary)]">{children}</div>;
   }
 
-  // For all other pages (especially Chat), show the page directly
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]">
       {children}
@@ -145,20 +141,13 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
     let anonymousModeTimer: NodeJS.Timeout | undefined;
 
     const handleMessage = async (event: MessageEvent): Promise<void> => {
-      // Only log authentication-related messages to prevent console spam
       const isAuthMessage = event.data && (
         event.data.type === 'AUTHENTICATE_USER' ||
         event.data.type === 'AI_ASSISTANT_AUTHENTICATE_USER' ||
         event.data.type === 'AI_ASSISTANT_ACTION.AUTHENTICATE_USER'
       );
 
-      if (isAuthMessage) {
-        console.log('Received authentication message:', {
-          origin: event.origin,
-          type: event.data?.type,
-          data: event.data
-        });
-      }
+   
 
       // Security: Uncomment and modify this line to restrict origins in production
       // if (!['http://localhost:3001', 'https://your-production-domain.com'].includes(event.origin)) {
@@ -169,7 +158,6 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
       // Fix: Check for the correct message type that parent is sending
       if (isAuthMessage) {
 
-        console.log('✅ Authentication message received from parent:', event.data.data);
         externalAuthReceived = true;
 
         // Clear the anonymous mode timer
@@ -177,14 +165,12 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
           clearTimeout(anonymousModeTimer);
         }
 
-        console.log("Mode Determined: Authenticated User (from parent app)");
 
         const { userId, name, email, phone, profilePic, token: parentToken } = event.data.data!;
 
         // Get the appropriate token based on environment and availability
         const token = getAuthToken(parentToken);
         
-        console.log('🔍 Token source analysis:');
         logTokenInfo(token);
 
         try {
@@ -195,30 +181,17 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
           let finalPhone = phone;
           let finalProfilePic = profilePic;
 
-          // If token is provided, authenticate with TagMango first
           if (token) {
             try {
               authenticatedUser = await User.authenticate(token);
-              console.log('✅ TagMango authentication successful', authenticatedUser);
               
-              // Store the TagMango user data in state
               if (authenticatedUser) {
                 setTagMangoUser(authenticatedUser);
-                
-                // Use authenticated user data from TagMango API if available
-                finalUserId = authenticatedUser.userid || authenticatedUser.userId || authenticatedUser.id || userId;
-                finalName = authenticatedUser.name || authenticatedUser.full_name || authenticatedUser.displayName || name;
+                finalUserId = authenticatedUser._id || userId;
+                finalName = authenticatedUser.name || name;
                 finalEmail = authenticatedUser.email || email;
                 finalPhone = authenticatedUser.phone || authenticatedUser.phoneNumber || phone;
-                finalProfilePic = authenticatedUser.profilePic || authenticatedUser.avatar || authenticatedUser.picture || profilePic;
-                
-                console.log('🔄 Using TagMango user data:', {
-                  userId: finalUserId,
-                  name: finalName,
-                  email: finalEmail,
-                  phone: finalPhone,
-                  profilePic: finalProfilePic
-                });
+                finalProfilePic = authenticatedUser.profilePicUrl || profilePic;
               }
             } catch (authError: any) {
               console.error('❌ TagMango authentication failed:', authError);
@@ -296,13 +269,11 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
 
       // Priority 1: Preview/Dev Mode (if token available AND not embedded)
       if (!isEmbedded) {
-        // Try to get token for standalone/dev mode
         const standaloneToken = getAuthToken();
         
         if (standaloneToken) {
           try {
             console.log("Mode Determined: Preview/Dev (Token available, not embedded)");
-            console.log('🔍 Standalone token source analysis:');
             logTokenInfo(standaloneToken);
             
             // Authenticate with TagMango using the token
@@ -310,26 +281,18 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
             const platformUser = authUser.result;
             
             if (platformUser) {
-              console.log('🔄 Using TagMango standalone user data:', platformUser);
               
-              // Store the TagMango user data in state
               setTagMangoUser(platformUser);
               
-              // Use TagMango user ID from token for profile operations
               const tagMangoUserId = getTagMangoUserIdFromToken(standaloneToken);
-              const fallbackUserId = platformUser.userid || platformUser.userId || platformUser.id || 'dev-user';
+              const fallbackUserId = platformUser._id || 'dev-user';
               const profileUserId = tagMangoUserId || fallbackUserId;
               
-              const userName = platformUser.name || platformUser.full_name || platformUser.displayName || 'Development User';
+              const userName = platformUser.name || 'Development User';
               const userEmail = platformUser.email || 'dev@example.com';
-              const userPhone = platformUser.phone || platformUser.phoneNumber || '';
-              const userProfilePic = platformUser.profilePicUrl || platformUser.avatar || platformUser.picture || '';
+              const userPhone = platformUser.phone || '';
+              const userProfilePic = platformUser.profilePicUrl || '';
               
-              console.log('👤 Standalone mode - Using user ID for profile:', {
-                tagMangoUserId,
-                fallbackUserId,
-                usingUserId: profileUserId
-              });
               
               const newProfile = {
                 userId: tagMangoUserId,
@@ -376,7 +339,6 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
                   profile: profileData.data.profile
                 };
                 setCurrentAppUser(appUser);
-                console.log('✅ Standalone app user set with TagMango user ID:', appUser);
               }
               setAppUserLoading(false);
               return; // Mode determined, stop here.

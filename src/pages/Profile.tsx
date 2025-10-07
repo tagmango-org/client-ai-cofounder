@@ -77,9 +77,9 @@ export default function ProfilePage() {
   useEffect(() => {
     if (currentAppUser) {
       setDiscoveryState(
-        (currentAppUser as any)?.profile || { status: "not_started", answers: {} }
+        currentAppUser?.profile || { status: "not_started", answers: {} }
       );
-      setEditedName((user as any)?.name || "");
+      setEditedName(user?.name || "");
     }
   }, [currentAppUser, user]);
 

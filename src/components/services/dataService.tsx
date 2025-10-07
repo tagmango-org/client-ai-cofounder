@@ -42,7 +42,7 @@ const isTagMangoAuthenticated = (): boolean => {
   try {
     return TagMangoAuth.isAuthenticated();
   } catch (error) {
-    console.log('TagMango authentication check failed:', error);
+    console.error('TagMango authentication check failed:', error);
     return false;
   }
 };
@@ -371,18 +371,14 @@ export const updateMessage = async (currentUser: User | null, { messageId, updat
 // --- Profile/User Services ---
 
 export const updateProfile = async (currentUser: User | null, profileData: any): Promise<ApiResponse> => {
-    // Use custom backend APIs if user is authenticated with TagMango
     if (isAuthenticatedRealUser(currentUser)) {
-        console.log('🔐 Using custom backend API for authenticated user - updateProfile');
         
-        // Get TagMango user ID from token
         const tagMangoUserId = getTagMangoUserId();
         if (!tagMangoUserId) {
             console.error('❌ No TagMango user ID found in token');
             return { data: { success: false, error: 'TagMango user ID not found' } };
         }
         
-        console.log('👤 Using TagMango user ID for profile update:', tagMangoUserId);
         
         try {
             const response = await updateUserProfile(tagMangoUserId, profileData);
@@ -392,7 +388,6 @@ export const updateProfile = async (currentUser: User | null, profileData: any):
             return { data: { success: false, error: 'Failed to update profile' } };
         }
     }
-    console.log('📱 Profile not persisted for unauthenticated user');
     // For anonymous users, profile updates are a no-op as they are not persisted.
     // The state is managed locally in Chat.js but not saved anywhere.
     return Promise.resolve({ data: { success: true, message: "Profile not persisted for anonymous user." } });
