@@ -26,7 +26,6 @@ import * as messageAPI from '@/api/messages';
 import type {
   User,
   UserData,
-  ApiResponse,
   CreateConversationParams,
   UpdateConversationParams,
   DeleteConversationParams,
@@ -89,7 +88,7 @@ export const getAuthenticationStatus = (currentUser: User | null) => {
 
 // --- Conversation Services ---
 
-export const listConversations = async (currentUser: User | null): Promise<ApiResponse> => {
+export const listConversations = async (currentUser: User | null): Promise<any> => {
     // Use custom backend APIs if user is authenticated with TagMango
     if (isAuthenticatedRealUser(currentUser)) {
         console.log('🔐 Using custom backend API for authenticated user - listConversations');
@@ -130,7 +129,7 @@ export const listConversations = async (currentUser: User | null): Promise<ApiRe
     return localConversationManager.list();
 };
 
-export const createConversation = async (currentUser: User | null, { title }: CreateConversationParams): Promise<ApiResponse> => {
+export const createConversation = async (currentUser: User | null, { title }: CreateConversationParams): Promise<any> => {
     // Use custom backend APIs if user is authenticated with TagMango
     if (isAuthenticatedRealUser(currentUser)) {
         console.log('🔐 Using custom backend API for authenticated user - createConversation');
@@ -172,7 +171,7 @@ export const createConversation = async (currentUser: User | null, { title }: Cr
     return localConversationManager.create({ title });
 };
 
-export const updateConversation = async (currentUser: User | null, { conversationId, updates }: UpdateConversationParams): Promise<ApiResponse> => {
+export const updateConversation = async (currentUser: User | null, { conversationId, updates }: UpdateConversationParams): Promise<any> => {
     // Use custom backend APIs if user is authenticated with TagMango
     if (isAuthenticatedRealUser(currentUser)) {
         console.log('🔐 Using custom backend API for authenticated user - updateConversation');
@@ -214,7 +213,7 @@ export const updateConversation = async (currentUser: User | null, { conversatio
     return localConversationManager.update({ conversationId, updates });
 };
 
-export const deleteConversation = async (currentUser: User | null, { conversationId }: DeleteConversationParams): Promise<ApiResponse> => {
+export const deleteConversation = async (currentUser: User | null, { conversationId }: DeleteConversationParams): Promise<any> => {
     // Use custom backend APIs if user is authenticated with TagMango
     if (isAuthenticatedRealUser(currentUser)) {
         console.log('🔐 Using custom backend API for authenticated user - deleteConversation');
@@ -244,7 +243,7 @@ export const deleteConversation = async (currentUser: User | null, { conversatio
 
 // --- Message Services ---
 
-export const listMessages = async (currentUser: User | null, { conversationId, cursor, limit }: ListMessagesParams): Promise<ApiResponse> => {
+export const listMessages = async (currentUser: User | null, { conversationId, cursor, limit }: ListMessagesParams): Promise<any> => {
     // Use custom backend APIs if user is authenticated with TagMango
     if (isAuthenticatedRealUser(currentUser)) {
         console.log('🔐 Using custom backend API for authenticated user - listMessages');
@@ -285,7 +284,7 @@ export const listMessages = async (currentUser: User | null, { conversationId, c
     return localMessageManager.list({ conversationId });
 };
 
-export const createMessage = async (currentUser: User | null, { conversationId, content, role, metadata }: CreateMessageParams): Promise<ApiResponse> => {
+export const createMessage = async (currentUser: User | null, { conversationId, content, role, metadata }: CreateMessageParams): Promise<any> => {
     // Use custom backend APIs if user is authenticated with TagMango
     if (isAuthenticatedRealUser(currentUser)) {
         console.log('🔐 Using custom backend API for authenticated user - createMessage');
@@ -326,7 +325,7 @@ export const createMessage = async (currentUser: User | null, { conversationId, 
     return localMessageManager.create({ conversationId, text: content, sender: role === 'assistant' ? 'ai' : role, metadata });
 };
 
-export const updateMessage = async (currentUser: User | null, { messageId, updates, conversationId }: UpdateMessageParams): Promise<ApiResponse> => {
+export const updateMessage = async (currentUser: User | null, { messageId, updates, conversationId }: UpdateMessageParams): Promise<any> => {
     // Use custom backend APIs if user is authenticated with TagMango
     if (isAuthenticatedRealUser(currentUser)) {
         console.log('🔐 Using custom backend API for authenticated user - updateMessage');
@@ -370,7 +369,7 @@ export const updateMessage = async (currentUser: User | null, { messageId, updat
 
 // --- Profile/User Services ---
 
-export const updateProfile = async (currentUser: User | null, profileData: any): Promise<ApiResponse> => {
+export const updateProfile = async (currentUser: User | null, profileData: any): Promise<any> => {
     if (isAuthenticatedRealUser(currentUser)) {
         
         const tagMangoUserId = getTagMangoUserId();
@@ -393,7 +392,7 @@ export const updateProfile = async (currentUser: User | null, profileData: any):
     return Promise.resolve({ data: { success: true, message: "Profile not persisted for anonymous user." } });
 };
 
-export const getProfile = async (currentUser: User | null): Promise<ApiResponse> => {
+export const getProfile = async (currentUser: User | null): Promise<any> => {
     // Use custom backend APIs if user is authenticated with TagMango
     if (isAuthenticatedRealUser(currentUser)) {
         console.log('🔐 Using custom backend API for authenticated user - getProfile');
@@ -436,7 +435,7 @@ export const getProfile = async (currentUser: User | null): Promise<ApiResponse>
 
 // Added function to handle fetching the dev admin user specifically for the Chat page to use.
 // This now uses TagMango user ID from token instead of passed userData.userId
-export const getOrCreateAppUser = async (userData: UserData): Promise<ApiResponse> => {
+export const getOrCreateAppUser = async (userData: UserData): Promise<any> => {
     console.log('🔐 Using custom backend API - getOrCreateAppUser');
     
     // Get TagMango user ID from token - this is the authoritative user ID

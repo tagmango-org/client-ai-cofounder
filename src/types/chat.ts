@@ -5,8 +5,8 @@ export interface Message {
   text: string;
   timestamp?: Date;
   conversationId?: string;
-  metadata?: any;
-  created_date: any
+  metadata?: Record<string, unknown>;
+  created_date: string;
 }
 
 export interface Conversation {
@@ -18,6 +18,20 @@ export interface Conversation {
   userId?: string;
 }
 
+
+export interface DiscoveryQuestionOptions {
+  key: string;
+  question: string;
+  options: string[];
+  multiSelect: boolean;
+}
+
+
+export interface DiscoveryPhaseOptions {
+  key: string;
+  title: string;
+  questions: DiscoveryQuestionOptions[];
+}
 export interface DiscoveryQuestion {
   key: string;
   question: string;
@@ -35,10 +49,10 @@ export interface DiscoveryPhase {
 }
 
 export interface DiscoveryState {
-  currentPhase: string;
-  answers: Record<string, any>;
-  completedPhases: string[];
-  isActive: boolean;
+  status: "not_started" | "in_progress" | "paused" | "completed";
+  currentPhaseIndex: number;
+  currentQuestionIndexInPhase: number;
+  answers: Record<string, string | string[]>;
 }
 
 export interface MessageCache {

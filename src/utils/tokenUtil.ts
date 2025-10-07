@@ -120,7 +120,6 @@ export function logTokenInfo(token: string | null): void {
         issuedAt: payload.iat ? new Date(payload.iat * 1000) : 'Unknown',
         expiresAt: payload.exp ? new Date(payload.exp * 1000) : 'Unknown'
       };
-      console.log('🔍 Token payload:', tokenInfo);
     }
   } catch (error: any) {
     console.log('🔍 Token format analysis failed:', error.message);

@@ -5,7 +5,7 @@ export interface UserProfile {
   status: UserStatus;
   currentPhaseIndex: number;
   currentQuestionIndexInPhase: number;
-  answers: any;
+  answers: Record<string, string | string[]>;
 }
 
 export interface User {
@@ -23,7 +23,7 @@ export interface UserData {
   userId: string;
   email: string;
   full_name: string;
-  name?: string; // Keep for backward compatibility
+  name?: string;
   phone?: string;
   profilePic?: string;
   disabled?: boolean | null;
@@ -45,7 +45,7 @@ export interface Conversation {
 
 export interface ConversationUpdates {
   title?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface CreateConversationParams {
@@ -68,13 +68,13 @@ export interface Message {
   sender: 'user' | 'ai' | 'assistant';
   created_date: string;
   conversationId?: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 export interface MessageUpdates {
   text?: string;
-  metadata?: any;
-  [key: string]: any;
+  metadata?: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 export interface ListMessagesParams {
@@ -87,7 +87,7 @@ export interface CreateMessageParams {
   conversationId: string;
   content: string;
   role: 'user' | 'assistant';
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 export interface UpdateMessageParams {
@@ -97,7 +97,7 @@ export interface UpdateMessageParams {
 }
 
 // API Response types
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = Record<string, unknown>> {
   data: {
     success: boolean;
     message?: string;
@@ -107,7 +107,7 @@ export interface ApiResponse<T = any> {
     messages?: Message[];
     hasMore?: boolean;
     appUser?: User;
-    [key: string]: any;
+    [key: string]: unknown;
   } & T;
 }
 
@@ -126,7 +126,7 @@ export type MessageService = {
 };
 
 export type ProfileService = {
-  updateProfile: (currentUser: User | null, profileData: any) => Promise<ApiResponse>;
+  updateProfile: (currentUser: User | null, profileData: Record<string, unknown>) => Promise<ApiResponse>;
   getOrCreateAppUser: (userData: UserData) => Promise<ApiResponse>;
 };
 

@@ -2,12 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useAppUser } from "../components/AppUserContext";
-// AppUserProfile type will be inferred from context
-import { DISCOVERY_PHASES } from "./Chat";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft,
   Edit,
@@ -23,8 +18,32 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import * as dataService from "@/components/services/dataService";
 import { GenerateProfileSynthesis } from "@/api/openai";
+import { User, UserData } from "@/types/dataService";
+import { DISCOVERY_PHASES } from "@/data/chat";
 
-const synthèseIcons = {
+interface ProfileSynthesis {
+  niche_clarity: string;
+  personality_type: string;
+  core_motivation: string;
+  primary_strength: string;
+  growth_edge: string;
+  business_stage: string;
+}
+
+interface DiscoveryAnswers {
+  [key: string]: string | string[];
+}
+
+interface ProfileDiscoveryState {
+  status: "not_started" | "in_progress" | "completed";
+  answers: DiscoveryAnswers;
+  currentPhaseIndex?: number;
+  currentQuestionIndexInPhase?: number;
+}
+
+type SynthesisIconKey = keyof ProfileSynthesis;
+
+const synthesisIcons: Record<SynthesisIconKey, React.ReactNode> = {
   niche_clarity: <Target className="w-6 h-6 text-white" />,
   personality_type: <Sparkles className="w-6 h-6 text-white" />,
   core_motivation: <ShieldCheck className="w-6 h-6 text-white" />,
@@ -58,17 +77,17 @@ const SynthesisCard = ({ icon, title, text, delay }: SynthesisCardProps) => (
 export default function ProfilePage() {
   const {
     currentAppUser,
-    setCurrentAppUser: setcurrentAppUserProfileProfile,
+    setCurrentAppUser,
     appUserLoading,
   } = useAppUser();
   const user = currentAppUser;
-  const [discoveryState, setDiscoveryState] = useState<any>(null);
-  const [synthesis, setSynthesis] = useState<any>(null);
+  const [discoveryState, setDiscoveryState] = useState<ProfileDiscoveryState | null>(null);
+  const [synthesis, setSynthesis] = useState<ProfileSynthesis | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
-  const [editedName, setEditedName] = useState<string>("");
+    const [editedName, setEditedName] = useState<string>("");
 
-  const hasAnswers = useMemo(() => {
+    const hasAnswers = useMemo(() => {
     return (
       discoveryState?.answers && Object.keys(discoveryState.answers).length > 0
     );
@@ -76,19 +95,23 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (currentAppUser) {
-      setDiscoveryState(
-        currentAppUser?.profile || { status: "not_started", answers: {} }
-      );
-      setEditedName(user?.name || "");
+      const profile = currentAppUser.profile;
+      setDiscoveryState({
+        status: profile?.status || "not_started",
+        answers: profile?.answers || {},
+        currentPhaseIndex: profile?.currentPhaseIndex,
+        currentQuestionIndexInPhase: profile?.currentQuestionIndexInPhase
+      });
+      setEditedName(currentAppUser.name || "");
     }
   }, [currentAppUser, user]);
 
   useEffect(() => {
-    const generateProfileSynthesis = async (answers: any) => {
+    const generateProfileSynthesis = async (answers: DiscoveryAnswers) => {
       setIsGenerating(true);
       const answeredQuestions = Object.entries(answers || {})
         .map(
-          ([key, value]) =>
+          ([key, value]: [string, string | string[]]) =>
             `${key}: ${Array.isArray(value) ? value.join(", ") : value}`
         )
         .join("\n");
@@ -111,7 +134,7 @@ Respond with ONLY a JSON object in this exact format:
         const response = await GenerateProfileSynthesis({
           answers: answers
         });
-        setSynthesis(response);
+        setSynthesis(response as ProfileSynthesis);
       } catch (error) {
         console.error("Error generating profile synthesis:", error);
         setSynthesis(null);
@@ -120,7 +143,7 @@ Respond with ONLY a JSON object in this exact format:
       }
     };
 
-    if (hasAnswers && !synthesis) {
+    if (hasAnswers && !synthesis && discoveryState) {
       generateProfileSynthesis(discoveryState.answers);
     }
   }, [hasAnswers, discoveryState, synthesis]);
@@ -128,32 +151,33 @@ Respond with ONLY a JSON object in this exact format:
   const handleSaveEdit = async () => {
     if (
       !currentAppUser ||
-      editedName.trim() === (currentAppUser as any)?.name
+      editedName.trim() === currentAppUser.name
     ) {
       setIsEditing(false);
       return;
     }
 
     try {
-     const data =await dataService.getOrCreateAppUser({
-        userId: (currentAppUser as any)?.userId || '',
-        email: (currentAppUser as any)?.email || '',
+      const userData: UserData = {
+        userId: currentAppUser.tagMangoUserId || '',
+        email: currentAppUser.email || '',
         full_name: editedName.trim(),
-        name: editedName.trim(), // Keep for backward compatibility
-        phone: (currentAppUser as any)?.phone || '',
-        profilePic: (currentAppUser as any)?.profilePic || '',
-        disabled: (currentAppUser as any)?.disabled || null,
-        is_verified: (currentAppUser as any)?.is_verified || false,
-        app_id: (currentAppUser as any)?.app_id || '',
-        is_service: (currentAppUser as any)?.is_service || false,
-        _app_role: (currentAppUser as any)?._app_role || 'user',
-        role: (currentAppUser as any)?.role || 'user',
-      });
-      setcurrentAppUserProfileProfile(data.data.appUser);
+        name: editedName.trim(),
+        phone: currentAppUser.phone?.toString() || '',
+        profilePic: currentAppUser.profilePic || '',
+        disabled: null,
+        is_verified: false,
+        app_id: '',
+        is_service: false,
+        _app_role: currentAppUser.role || 'user',
+        role: currentAppUser.role || 'user',
+      };
+      
+      const data = await dataService.getOrCreateAppUser(userData);
+      setCurrentAppUser(data.data.appUser || null);
     } catch (error) {
       console.error("Failed to update user name:", error);
-      // Optionally revert name or show an error toast
-      setEditedName((currentAppUser as any)?.name || '');
+      setEditedName(currentAppUser.name || '');
     } finally {
       setIsEditing(false);
     }
@@ -175,8 +199,8 @@ Respond with ONLY a JSON object in this exact format:
     );
   }
 
-  const userInitial = (currentAppUser as any)?.name
-    ? (currentAppUser as any).name.charAt(0).toUpperCase()
+  const userInitial = currentAppUser?.name
+    ? currentAppUser.name.charAt(0).toUpperCase()
     : "U";
 
   return (
@@ -189,10 +213,10 @@ Respond with ONLY a JSON object in this exact format:
           className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10"
         >
           <div className="flex items-center gap-4">
-            {(currentAppUser as any)?.profilePic ? (
+            {currentAppUser?.profilePic ? (
               <img
-                src={(currentAppUser as any).profilePic}
-                alt={(currentAppUser as any)?.name || 'User'}
+                src={currentAppUser.profilePic}
+                alt={currentAppUser?.name || 'User'}
                 className="w-16 h-16 rounded-full object-cover border-2 border-gray-700"
               />
             ) : (
@@ -209,10 +233,10 @@ Respond with ONLY a JSON object in this exact format:
                 />
               ) : (
                 <h1 className="text-2xl md:text-3xl font-bold">
-                  {(currentAppUser as any)?.name || 'User'}
+                  {currentAppUser?.name || 'User'}
                 </h1>
               )}
-              <p className="text-gray-400">{(currentAppUser as any)?.email || ''}</p>
+              <p className="text-gray-400">{currentAppUser?.email || ''}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 mt-4 md:mt-0">
@@ -258,37 +282,37 @@ Respond with ONLY a JSON object in this exact format:
               synthesis ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <SynthesisCard
-                    icon={synthèseIcons.niche_clarity}
+                    icon={synthesisIcons.niche_clarity}
                     title="Niche Clarity"
                     text={synthesis.niche_clarity}
                     delay={0}
                   />
                   <SynthesisCard
-                    icon={synthèseIcons.personality_type}
+                    icon={synthesisIcons.personality_type}
                     title="Personality Type"
                     text={synthesis.personality_type}
                     delay={1}
                   />
                   <SynthesisCard
-                    icon={synthèseIcons.core_motivation}
+                    icon={synthesisIcons.core_motivation}
                     title="Core Motivation"
                     text={synthesis.core_motivation}
                     delay={2}
                   />
                   <SynthesisCard
-                    icon={synthèseIcons.primary_strength}
+                    icon={synthesisIcons.primary_strength}
                     title="Primary Strength"
                     text={synthesis.primary_strength}
                     delay={3}
                   />
                   <SynthesisCard
-                    icon={synthèseIcons.growth_edge}
+                    icon={synthesisIcons.growth_edge}
                     title="Growth Edge"
                     text={synthesis.growth_edge}
                     delay={4}
                   />
                   <SynthesisCard
-                    icon={synthèseIcons.business_stage}
+                    icon={synthesisIcons.business_stage}
                     title="Business Stage"
                     text={synthesis.business_stage}
                     delay={5}
@@ -319,9 +343,9 @@ Respond with ONLY a JSON object in this exact format:
           <AnimatePresence>
             {hasAnswers ? (
               <div className="space-y-8">
-                {DISCOVERY_PHASES.map((phase: any, phaseIndex: number) => {
+                {DISCOVERY_PHASES.map((phase, phaseIndex: number) => {
                   const hasPhaseAnswers = phase.questions.some(
-                    (q: any) => discoveryState.answers[q.key] !== undefined
+                    (q) => discoveryState?.answers[q.key] !== undefined
                   );
                   if (!hasPhaseAnswers) return null;
 
@@ -336,8 +360,8 @@ Respond with ONLY a JSON object in this exact format:
                         {phase.title}
                       </h3>
                       <div className="space-y-6">
-                        {phase.questions.map((question: any) => {
-                          const answer = discoveryState.answers[question.key];
+                        {phase.questions.map((question) => {
+                          const answer = discoveryState?.answers[question.key];
                           if (answer === undefined) return null;
 
                           return (
@@ -361,7 +385,7 @@ Respond with ONLY a JSON object in this exact format:
                                 </div>
                               ) : (
                                 <p className="text-white bg-gray-700/60 px-4 py-2 rounded-md">
-                                  {answer}
+                                  {answer as string}
                                 </p>
                               )}
                             </div>

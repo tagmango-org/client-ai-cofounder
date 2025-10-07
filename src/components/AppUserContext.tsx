@@ -1,12 +1,21 @@
 import { User } from '@/types/dataService';
 import { createContext, useContext } from 'react';
 
+interface TagMangoUser {
+    id: string;
+    email: string;
+    name: string;
+    phone?: string;
+    profilePic?: string;
+    [key: string]: unknown;
+}
+
 interface AppUserContextType {
     currentAppUser: User | null;
-    setCurrentAppUser: (user: any) => void;
+    setCurrentAppUser: (user: User | null) => void;
     appUserLoading: boolean;
-    tagMangoUser: any;
-    setTagMangoUser: (user: any) => void;
+    tagMangoUser: TagMangoUser | null;
+    setTagMangoUser: (user: TagMangoUser | null) => void;
 }
 
 export const AppUserContext = createContext<AppUserContextType>({
