@@ -25,7 +25,19 @@ class TagMangoAuth {
 
   constructor() {
     this.token = localStorage.getItem('tagmango_token');
-    this.user = null;
+    
+    // Also load user from localStorage if available
+    const storedUser = localStorage.getItem('tagmango_user');
+    if (storedUser) {
+      try {
+        this.user = JSON.parse(storedUser);
+      } catch (error) {
+        console.error('Failed to parse stored TagMango user:', error);
+        this.user = null;
+      }
+    } else {
+      this.user = null;
+    }
   }
 
   /**

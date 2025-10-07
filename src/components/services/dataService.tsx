@@ -25,16 +25,16 @@ import * as conversationAPI from '@/api/conversations';
 import * as messageAPI from '@/api/messages';
 import type {
   User,
-  UserData,
   CreateConversationParams,
   UpdateConversationParams,
   DeleteConversationParams,
   ListMessagesParams,
   CreateMessageParams,
   UpdateMessageParams,
+  UpdateUser,
 } from '@/types/dataService';
 
-const isRealUser: any = (user: any) => user && user.id !== 'anonymous';
+const isRealUser: any = (user: any) => user && user._id !== 'anonymous';
 
 // Check if user is authenticated with TagMango
 const isTagMangoAuthenticated = (): boolean => {
@@ -45,6 +45,8 @@ const isTagMangoAuthenticated = (): boolean => {
     return false;
   }
 };
+
+
 
 // Enhanced user check: real user AND TagMango authenticated
 const isAuthenticatedRealUser = (user: any): boolean => {
@@ -81,7 +83,7 @@ export const getAuthenticationStatus = (currentUser: User | null) => {
     isRealUser: realUser,
     isTagMangoAuthenticated: tagMangoAuth,
     isFullyAuthenticated: authenticated,
-    userId: currentUser?.id || 'none',
+    userId: currentUser?.userId || 'none',
     apiSource: authenticated ? 'Custom Backend APIs' : 'Local Storage'
   };
 };
@@ -435,7 +437,7 @@ export const getProfile = async (currentUser: User | null): Promise<any> => {
 
 // Added function to handle fetching the dev admin user specifically for the Chat page to use.
 // This now uses TagMango user ID from token instead of passed userData.userId
-export const getOrCreateAppUser = async (userData: UserData): Promise<any> => {
+export const getOrCreateAppUser = async (userData: UpdateUser): Promise<any> => {
     console.log('🔐 Using custom backend API - getOrCreateAppUser');
     
     // Get TagMango user ID from token - this is the authoritative user ID
@@ -463,11 +465,8 @@ export const getOrCreateAppUser = async (userData: UserData): Promise<any> => {
         const newProfile = {
             userId: tagMangoUserId,
             email: userData.email,
-            full_name: userData.full_name,
-            disabled: userData.disabled || null,
+            name: userData.name,
             is_verified: userData.is_verified,
-            app_id: userData.app_id,
-            is_service: userData.is_service,
             _app_role: userData._app_role,
             role: userData.role || 'user',
             profile: {
@@ -475,7 +474,8 @@ export const getOrCreateAppUser = async (userData: UserData): Promise<any> => {
                 currentPhaseIndex: 0,
                 currentQuestionIndexInPhase: 0,
                 answers: {}
-            }
+            },
+            profilePic: userData.profilePic || ''
         };
         
         console.log('🆕 Creating new profile for TagMango user:', tagMangoUserId);
