@@ -23,12 +23,6 @@ const getTagMangoUserIdFromToken = (token: string | null): string | null => {
 };
 
 // Type definitions for Layout components
-interface PlatformUser {
-  id: string;
-  full_name: string;
-  email: string;
-  role: string;
-}
 
 interface AppUser {
   id: string;
@@ -135,7 +129,7 @@ function LayoutContent({ children, currentPageName }: LayoutContentProps) {
 export default function Layout({ children, currentPageName }: LayoutProps) {
   const [appUserLoading, setAppUserLoading] = useState<boolean>(true);
   const [tagMangoUser, setTagMangoUser] = useState<any>(null);
-  const [currentAppUser, setCurrentAppUser] = useState<AppUser | null>(null);
+  const { currentAppUser, setCurrentAppUser } = useAppUser();
 
   useEffect(() => {
     let externalAuthReceived: boolean = false;
@@ -243,14 +237,17 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
             // Map the profile data to the expected app user format
             // Use TagMango user ID as the primary identifier
             const appUser = {
-              id: profileUserId, // This is now the TagMango user ID
-              tagMangoUserId: tagMangoUserId, // Store the TagMango user ID separately
               name: finalName,
               email: finalEmail,
               phone: finalPhone,
               profilePic: finalProfilePic,
               role: profileData.data.role,
               profile: profileData.data.profile,
+              _id: profileUserId,
+              userId: profileUserId,
+              disabled: false,
+              is_verified: false,
+              _app_role: profileData.data._app_role || "user",
             };
             setCurrentAppUser(appUser);
             console.log(
@@ -262,9 +259,20 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
           console.error("❌ Error handling external authentication:", error);
           // Fallback to anonymous mode on error
           setCurrentAppUser({
-            id: "anonymous",
+            _id: "anonymous",
             name: "Anonymous User",
-            profile: { status: "not_started", answers: {} },
+            profile: {
+              status: "not_started", answers: {},
+              currentPhaseIndex: 0,
+              currentQuestionIndexInPhase: 0
+            },
+            userId: "",
+            email: "",
+            disabled: null,
+            is_verified: false,
+            _app_role: "",
+            role: "",
+            phone: ""
           });
         } finally {
           setAppUserLoading(false);
@@ -306,15 +314,11 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
               const userProfilePic = platformUser.profilePicUrl || "";
 
               const newProfile = {
-                created_by: userName,
-                created_by_id: tagMangoUserId,
                 userId: tagMangoUserId,
                 email: userEmail,
-                full_name: userName,
                 name: userName,
                 phone: userPhone || "",
                 profilePic: userProfilePic || "",
-                disabled: null,
                 is_verified: false,
                 _app_role: "user",
                 role: "user",
@@ -339,17 +343,18 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
               console.log(profileData);
 
               if (profileData.success && profileData.data) {
-                // Map the profile data to the expected app user format
-                // Use TagMango user ID as the primary identifier
                 const appUser = {
-                  id: profileUserId, // This is now the TagMango user ID
-                  tagMangoUserId: tagMangoUserId, // Store the TagMango user ID separately
+                  _id: profileUserId,
+                  userId: profileUserId,
                   name: userName,
                   email: userEmail,
                   phone: userPhone,
                   profilePic: userProfilePic,
-                  role: profileData.data.role,
+                  role: profileData.data.role || "user",
                   profile: profileData.data.profile,
+                  disabled: false,
+                  is_verified: false,
+                  _app_role: profileData.data._app_role || "user",
                 };
                 setCurrentAppUser(appUser);
               }
@@ -396,9 +401,20 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
             "⏰ Timeout reached - Mode Determined: Anonymous (fallback)"
           );
           setCurrentAppUser({
-            id: "anonymous",
+            _id: "anonymous",
             name: "Anonymous User",
-            profile: { status: "not_started", answers: {} },
+            profile: {
+              status: "not_started", answers: {},
+              currentPhaseIndex: 0,
+              currentQuestionIndexInPhase: 0
+            },
+            userId: "",
+            email: "",
+            disabled: null,
+            is_verified: false,
+            _app_role: "",
+            role: "",
+            phone: ""
           });
           setAppUserLoading(false);
         }

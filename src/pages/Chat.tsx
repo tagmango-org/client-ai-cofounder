@@ -19,7 +19,6 @@ import {
 } from "@/api/openai";
 import { User } from "@/types/dataService";
 
-
 interface LLMResponse {
   ai_response_text: string;
   action?: string;
@@ -158,7 +157,7 @@ const DiscoveryQuestionOptions = ({
 };
 
 const isRealUser = (user: User | null): user is User =>
-  user !== null && user.id !== "anonymous";
+  user !== null && user._id !== "anonymous";
 
 export default function Chat() {
   const [message, setMessage] = useState<string>("");
@@ -174,6 +173,14 @@ export default function Chat() {
   const [initialLoading, setInitialLoading] = useState<boolean>(true);
 
   const { currentAppUser, appUserLoading, setCurrentAppUser } = useAppUser();
+
+  // Debug authentication status
+  useEffect(() => {
+    if (!appUserLoading && currentAppUser) {
+      const authStatus = dataService.getAuthenticationStatus(currentAppUser);
+      console.log('🔍 Authentication Status:', authStatus);
+    }
+  }, [currentAppUser, appUserLoading]);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [thinkingMessage, setThinkingMessage] = useState<string>(
@@ -228,16 +235,13 @@ export default function Chat() {
       const response = await dataService.getOrCreateAppUser({
         userId: "dev_admin",
         email: "devadmin@example.com",
-        full_name: "Dev Admin",
-        name: "Dev Admin", // Keep for backward compatibility
+        name: "Dev Admin",
         phone: "",
         profilePic: "",
-        disabled: null,
         is_verified: true,
-        app_id: "dev_app_id",
-        is_service: false,
         _app_role: "admin",
         role: "admin",
+        _id: "",
       });
 
       if (response.data.success) {
@@ -415,7 +419,7 @@ export default function Chat() {
           setDiscoveryState({
             ...DEFAULT_DISCOVERY_STATE,
             ...userProfile,
-            answers: userProfile.answers || {},
+            answers: userProfile?.answers || {},
           });
           if (!knowledgeArticlesCached) {
             const articles = (await KnowledgeArticle.list()) || [];

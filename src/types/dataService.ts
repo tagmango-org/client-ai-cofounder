@@ -1,6 +1,31 @@
 type UserStatus = "not_started" | "in_progress" | "completed";
 type UserRole = "user" | "admin";
 
+
+export interface UpdateUserProfile {
+  status?: UserStatus;
+  currentPhaseIndex?: number;
+  currentQuestionIndexInPhase?: number;
+  answers?: Record<string, string | string[]>;
+}
+
+export interface UpdateUser {
+  _id?: string;
+  userId?: string;
+  email?: string;
+  name?: string;
+  disabled?: boolean | null;
+  is_verified?: boolean;
+  _app_role?: string; // e.g. "user", "admin"
+  role?: string;      // e.g. "user", "creator"
+  profilePic?: string;
+  createdAt?: string; // ISO date string
+  updatedAt?: string; // ISO date string
+  phone?: string;
+  profile?: UserProfile;
+}
+
+
 export interface UserProfile {
   status: UserStatus;
   currentPhaseIndex: number;
@@ -9,30 +34,22 @@ export interface UserProfile {
 }
 
 export interface User {
-  id: string;
-  tagMangoUserId: string;
-  name: string;
-  email: string;
-  phone: number;
-  profilePic: string;
-  role: UserRole;
-  profile: UserProfile;
-}
-
-export interface UserData {
+  _id: string;
   userId: string;
   email: string;
-  full_name: string;
-  name?: string;
-  phone?: string;
-  profilePic?: string;
-  disabled?: boolean | null;
+  name: string;
+  disabled: boolean | null;
   is_verified: boolean;
-  app_id: string;
-  is_service: boolean;
-  _app_role: string;
-  role?: string;
-}
+  _app_role: string; // e.g. "user", "admin"
+  role: string;      // e.g. "user", "creator"
+  profilePic?: string;
+  createdAt?: string; // ISO date string
+  updatedAt?: string; // ISO date string
+  phone: string;
+  profile:UserProfile
+};
+
+
 
 
 // Conversation types
@@ -127,6 +144,6 @@ export type MessageService = {
 
 export type ProfileService = {
   updateProfile: (currentUser: User | null, profileData: Record<string, unknown>) => Promise<ApiResponse>;
-  getOrCreateAppUser: (userData: UserData) => Promise<ApiResponse>;
+  getOrCreateAppUser: (userData: User) => Promise<ApiResponse>;
 };
 

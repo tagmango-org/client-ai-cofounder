@@ -18,8 +18,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import * as dataService from "@/components/services/dataService";
 import { GenerateProfileSynthesis } from "@/api/openai";
-import { User, UserData } from "@/types/dataService";
 import { DISCOVERY_PHASES } from "@/data/chat";
+import { getUserProfile, updateUserProfile } from "@/api/profile";
 
 interface ProfileSynthesis {
   niche_clarity: string;
@@ -75,19 +75,16 @@ const SynthesisCard = ({ icon, title, text, delay }: SynthesisCardProps) => (
 );
 
 export default function ProfilePage() {
-  const {
-    currentAppUser,
-    setCurrentAppUser,
-    appUserLoading,
-  } = useAppUser();
+  const { currentAppUser, setCurrentAppUser, appUserLoading } = useAppUser();
   const user = currentAppUser;
-  const [discoveryState, setDiscoveryState] = useState<ProfileDiscoveryState | null>(null);
+  const [discoveryState, setDiscoveryState] =
+    useState<ProfileDiscoveryState | null>(null);
   const [synthesis, setSynthesis] = useState<ProfileSynthesis | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
-    const [editedName, setEditedName] = useState<string>("");
+  const [editedName, setEditedName] = useState<string>("");
 
-    const hasAnswers = useMemo(() => {
+  const hasAnswers = useMemo(() => {
     return (
       discoveryState?.answers && Object.keys(discoveryState.answers).length > 0
     );
@@ -100,7 +97,7 @@ export default function ProfilePage() {
         status: profile?.status || "not_started",
         answers: profile?.answers || {},
         currentPhaseIndex: profile?.currentPhaseIndex,
-        currentQuestionIndexInPhase: profile?.currentQuestionIndexInPhase
+        currentQuestionIndexInPhase: profile?.currentQuestionIndexInPhase,
       });
       setEditedName(currentAppUser.name || "");
     }
@@ -132,7 +129,7 @@ Respond with ONLY a JSON object in this exact format:
 
       try {
         const response = await GenerateProfileSynthesis({
-          answers: answers
+          answers: answers,
         });
         setSynthesis(response as ProfileSynthesis);
       } catch (error) {
@@ -147,37 +144,49 @@ Respond with ONLY a JSON object in this exact format:
       generateProfileSynthesis(discoveryState.answers);
     }
   }, [hasAnswers, discoveryState, synthesis]);
+  console.log(currentAppUser);
 
   const handleSaveEdit = async () => {
-    if (
-      !currentAppUser ||
-      editedName.trim() === currentAppUser.name
-    ) {
+    if (!currentAppUser || editedName.trim() === currentAppUser.name) {
       setIsEditing(false);
       return;
     }
 
+    const data = await getUserProfile(currentAppUser.userId);
+
+    console.log(data);
     try {
-      const userData: UserData = {
-        userId: currentAppUser.tagMangoUserId || '',
-        email: currentAppUser.email || '',
-        full_name: editedName.trim(),
+      const userData = {
+        userId: currentAppUser.userId || "",
+        email: currentAppUser.email || "",
         name: editedName.trim(),
-        phone: currentAppUser.phone?.toString() || '',
-        profilePic: currentAppUser.profilePic || '',
-        disabled: null,
-        is_verified: false,
-        app_id: '',
-        is_service: false,
-        _app_role: currentAppUser.role || 'user',
-        role: currentAppUser.role || 'user',
+        phone: currentAppUser.phone?.toString() || "",
+        profilePic: currentAppUser.profilePic || "",
       };
-      
-      const data = await dataService.getOrCreateAppUser(userData);
-      setCurrentAppUser(data.data.appUser || null);
+
+      const res = await updateUserProfile(
+        currentAppUser.userId,
+        userData
+      );
+      console.log(res, "updated");
+      const appUser = {
+        id: res.data?.id || res.data?._id || res.data?.userId || "",
+        email: res.data?.email || "",
+        _id: res.data?._id || res.data?.userId || "",
+        name: res.data?.name || "",
+        phone: res.data?.phone || "",
+        profile: res.data.profile,
+        profilePic: res.data?.profilePic || "",
+        role: res.data?.role || "user",
+        userId: res.data?.userId || "",
+        disabled: res.data?.disabled ?? false,
+        is_verified: res.data?.is_verified ?? false,
+        _app_role: res.data?._app_role ?? "",
+      };
+      setCurrentAppUser(appUser || null);
     } catch (error) {
       console.error("Failed to update user name:", error);
-      setEditedName(currentAppUser.name || '');
+      setEditedName(currentAppUser.name || "");
     } finally {
       setIsEditing(false);
     }
@@ -216,7 +225,7 @@ Respond with ONLY a JSON object in this exact format:
             {currentAppUser?.profilePic ? (
               <img
                 src={currentAppUser.profilePic}
-                alt={currentAppUser?.name || 'User'}
+                alt={currentAppUser?.name || "User"}
                 className="w-16 h-16 rounded-full object-cover border-2 border-gray-700"
               />
             ) : (
@@ -228,15 +237,17 @@ Respond with ONLY a JSON object in this exact format:
               {isEditing ? (
                 <input
                   value={editedName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditedName(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setEditedName(e.target.value)
+                  }
                   className="text-2xl font-bold bg-gray-800 border-gray-700 focus:border-orange-500 ring-offset-gray-900 rounded-md px-3 py-2 text-white"
                 />
               ) : (
                 <h1 className="text-2xl md:text-3xl font-bold">
-                  {currentAppUser?.name || 'User'}
+                  {currentAppUser?.name || "User"}
                 </h1>
               )}
-              <p className="text-gray-400">{currentAppUser?.email || ''}</p>
+              <p className="text-gray-400">{currentAppUser?.email || ""}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 mt-4 md:mt-0">
