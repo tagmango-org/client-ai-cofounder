@@ -178,7 +178,7 @@ export default function Chat() {
   useEffect(() => {
     if (!appUserLoading && currentAppUser) {
       const authStatus = dataService.getAuthenticationStatus(currentAppUser);
-      console.log('🔍 Authentication Status:', authStatus);
+      console.log("🔍 Authentication Status:", authStatus);
     }
   }, [currentAppUser, appUserLoading]);
 

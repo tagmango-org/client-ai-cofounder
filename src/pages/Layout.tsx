@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { User } from "@/api/entities";
 import { ThemeProvider } from "../components/ThemeProvider";
-import { AppUserContext, useAppUser } from "../components/AppUserContext";
+import { AppUserContext } from "../components/AppUserContext";
 import { getAuthToken, logTokenInfo } from "../utils/tokenUtil";
 import { API_BASE_URL } from "@/api/openai";
+import { User as UserType } from "@/types/dataService";
 
-// Helper function to extract TagMango user ID from token
 const getTagMangoUserIdFromToken = (token: string | null): string | null => {
   if (!token) return null;
 
@@ -21,21 +21,6 @@ const getTagMangoUserIdFromToken = (token: string | null): string | null => {
 
   return null;
 };
-
-// Type definitions for Layout components
-
-interface AppUser {
-  id: string;
-  name: string;
-  email?: string;
-  phone?: string;
-  profilePic?: string;
-  role?: string;
-  profile?: {
-    status: string;
-    answers: Record<string, any>;
-  };
-}
 
 interface LayoutContentProps {
   children: React.ReactNode;
@@ -129,7 +114,7 @@ function LayoutContent({ children, currentPageName }: LayoutContentProps) {
 export default function Layout({ children, currentPageName }: LayoutProps) {
   const [appUserLoading, setAppUserLoading] = useState<boolean>(true);
   const [tagMangoUser, setTagMangoUser] = useState<any>(null);
-  const { currentAppUser, setCurrentAppUser } = useAppUser();
+  const [currentAppUser, setCurrentAppUser] = useState<UserType | null>();
 
   useEffect(() => {
     let externalAuthReceived: boolean = false;
@@ -262,9 +247,10 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
             _id: "anonymous",
             name: "Anonymous User",
             profile: {
-              status: "not_started", answers: {},
+              status: "not_started",
+              answers: {},
               currentPhaseIndex: 0,
-              currentQuestionIndexInPhase: 0
+              currentQuestionIndexInPhase: 0,
             },
             userId: "",
             email: "",
@@ -272,7 +258,7 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
             is_verified: false,
             _app_role: "",
             role: "",
-            phone: ""
+            phone: "",
           });
         } finally {
           setAppUserLoading(false);
@@ -404,9 +390,10 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
             _id: "anonymous",
             name: "Anonymous User",
             profile: {
-              status: "not_started", answers: {},
+              status: "not_started",
+              answers: {},
               currentPhaseIndex: 0,
-              currentQuestionIndexInPhase: 0
+              currentQuestionIndexInPhase: 0,
             },
             userId: "",
             email: "",
@@ -414,7 +401,7 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
             is_verified: false,
             _app_role: "",
             role: "",
-            phone: ""
+            phone: "",
           });
           setAppUserLoading(false);
         }
