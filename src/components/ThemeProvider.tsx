@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-const ThemeContext = createContext();
+interface ThemeContextType {
+  theme: string;
+  toggleTheme: () => void;
+}
+
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const useTheme = () => {
   const context = useContext(ThemeContext);
@@ -10,7 +15,7 @@ export const useTheme = () => {
   return context;
 };
 
-export const ThemeProvider = ({ children }) => {
+export const ThemeProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
   const [theme, setTheme] = useState('dark');
 
   useEffect(() => {
@@ -36,7 +41,7 @@ export const ThemeProvider = ({ children }) => {
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      <style jsx global>{`
+      <style>{`
         :root {
           /* Light theme variables */
           --bg-primary: #fafafa;

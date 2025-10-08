@@ -44,12 +44,12 @@ interface ProfileDiscoveryState {
 type SynthesisIconKey = keyof ProfileSynthesis;
 
 const synthesisIcons: Record<SynthesisIconKey, React.ReactNode> = {
-  niche_clarity: <Target className="w-6 h-6 text-white" />,
-  personality_type: <Sparkles className="w-6 h-6 text-white" />,
-  core_motivation: <ShieldCheck className="w-6 h-6 text-white" />,
-  primary_strength: <TrendingUp className="w-6 h-6 text-white" />,
-  growth_edge: <BrainCircuit className="w-6 h-6 text-white" />,
-  business_stage: <Lightbulb className="w-6 h-6 text-white" />,
+  niche_clarity: <Target className="w-6 h-6 text-[var(--text-primary)]" />,
+  personality_type: <Sparkles className="w-6 h-6 text-[var(--text-primary)]" />,
+  core_motivation: <ShieldCheck className="w-6 h-6 text-[var(--text-primary)]" />,
+  primary_strength: <TrendingUp className="w-6 h-6 text-[var(--text-primary)]" />,
+  growth_edge: <BrainCircuit className="w-6 h-6 text-[var(--text-primary)]" />,
+  business_stage: <Lightbulb className="w-6 h-6 text-[var(--text-primary)]" />,
 };
 
 interface SynthesisCardProps {
@@ -64,12 +64,12 @@ const SynthesisCard = ({ icon, title, text, delay }: SynthesisCardProps) => (
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay: delay * 0.1, duration: 0.5 }}
-    className="bg-gray-800/50 rounded-xl p-6 flex gap-6 items-start"
+    className="bg-[var(--bg-secondary)]/50 rounded-xl p-6 flex gap-6 items-start"
   >
-    <div className="bg-gray-700/50 p-3 rounded-full">{icon}</div>
+    <div className="bg-[var(--bg-tertiary)]/50 p-3 rounded-full">{icon}</div>
     <div>
-      <h4 className="font-bold text-lg text-white mb-2">{title}</h4>
-      <p className="text-gray-300 leading-relaxed">{text}</p>
+      <h4 className="font-bold text-lg text-[var(--text-primary)] mb-2">{title}</h4>
+      <p className="text-[var(--text-secondary)] leading-relaxed">{text}</p>
     </div>
   </motion.div>
 );
@@ -194,15 +194,15 @@ Respond with ONLY a JSON object in this exact format:
 
   if (appUserLoading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 order-[var(--accent-orange-border)]"></div>
       </div>
     );
   }
 
   if (!currentAppUser) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white">
+      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center text-[var(--text-primary)]">
         Could not load user profile. Please try again later.
       </div>
     );
@@ -213,7 +213,7 @@ Respond with ONLY a JSON object in this exact format:
     : "U";
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white font-sans">
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-sans">
       <div className="max-w-4xl mx-auto p-6 md:p-8">
         {/* --- Header --- */}
         <motion.div
@@ -226,10 +226,10 @@ Respond with ONLY a JSON object in this exact format:
               <img
                 src={currentAppUser.profilePic}
                 alt={currentAppUser?.name || "User"}
-                className="w-16 h-16 rounded-full object-cover border-2 border-gray-700"
+                className="w-16 h-16 rounded-full object-cover border-2 border-[var(--border-subtle)]"
               />
             ) : (
-              <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center text-white text-3xl font-bold">
+              <div className="w-16 h-16 bg-[var(--accent-orange)] rounded-full flex items-center justify-center text-[var(--text-primary)] text-3xl font-bold">
                 {userInitial}
               </div>
             )}
@@ -240,48 +240,23 @@ Respond with ONLY a JSON object in this exact format:
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                     setEditedName(e.target.value)
                   }
-                  className="text-2xl font-bold bg-gray-800 border-gray-700 focus:border-orange-500 ring-offset-gray-900 rounded-md px-3 py-2 text-white"
+                  className="text-2xl font-bold bg-[var(--bg-secondary)] border-[var(--border-subtle)] focus:order-[var(--accent-orange-border)] ring-offset-gray-900 rounded-md px-3 py-2 text-[var(--text-primary)]"
                 />
               ) : (
                 <h1 className="text-2xl md:text-3xl font-bold">
                   {currentAppUser?.name || "User"}
                 </h1>
               )}
-              <p className="text-gray-400">{currentAppUser?.email || ""}</p>
+              <p className="text-[var(--text-secondary)]">{currentAppUser?.email || ""}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 mt-4 md:mt-0">
             <Link to={createPageUrl("Chat")}>
-              <Button className="bg-transparent border border-gray-700 hover:bg-gray-800 hover:text-white rounded-md px-4 py-2 flex items-center">
+              <Button className="bg-transparent text-[var(--text-primary)] border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] rounded-md px-4 py-2 flex items-center">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Chat
               </Button>
             </Link>
-            {isEditing ? (
-              <>
-                <Button
-                  onClick={() => setIsEditing(false)}
-                  className="p-2 hover:bg-gray-800 rounded-md"
-                >
-                  <X className="w-5 h-5" />
-                </Button>
-                <Button
-                  onClick={handleSaveEdit}
-                  className="bg-green-600 hover:bg-green-700 rounded-md px-4 py-2 flex items-center"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  Save
-                </Button>
-              </>
-            ) : (
-              <Button
-                onClick={() => setIsEditing(true)}
-                className="bg-orange-500 hover:bg-orange-600 rounded-md px-4 py-2 flex items-center"
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Profile
-              </Button>
-            )}
           </div>
         </motion.div>
 
@@ -330,16 +305,16 @@ Respond with ONLY a JSON object in this exact format:
                   />
                 </div>
               ) : (
-                <div className="bg-gray-800/50 border border-gray-700 rounded-lg text-center p-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
-                  <p className="text-gray-400">
+                <div className="bg-[var(--bg-secondary)]/50 border border-[var(--border-subtle)] rounded-lg text-center p-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 order-[var(--accent-orange-border)] mx-auto mb-4"></div>
+                  <p className="text-[var(--text-secondary)]">
                     Generating your personalized synthesis...
                   </p>
                 </div>
               )
             ) : (
-              <div className="bg-gray-800/50 border border-gray-700 rounded-lg text-center p-8">
-                <p className="text-gray-400">
+              <div className="bg-[var(--bg-secondary)]/50 border border-[var(--border-subtle)] rounded-lg text-center p-8">
+                <p className="text-[var(--text-secondary)]">
                   No synthesis available. Complete the discovery process to see
                   your personalized profile.
                 </p>
@@ -367,7 +342,7 @@ Respond with ONLY a JSON object in this exact format:
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: phaseIndex * 0.1 }}
                     >
-                      <h3 className="text-xl font-semibold text-orange-400 border-b-2 border-gray-700 pb-2 mb-6">
+                      <h3 className="text-xl font-semibold text-[var(--accent-orange)] border-b-2 border-[var(--border-subtle)] pb-2 mb-6">
                         {phase.title}
                       </h3>
                       <div className="space-y-6">
@@ -378,9 +353,9 @@ Respond with ONLY a JSON object in this exact format:
                           return (
                             <div
                               key={question.key}
-                              className="bg-gray-800/50 p-5 rounded-lg"
+                              className="bg-[var(--bg-secondary)]/50 p-5 rounded-lg"
                             >
-                              <p className="font-semibold text-gray-300 mb-3">
+                              <p className="font-semibold text-[var(--text-secondary)] mb-3">
                                 {question.question}
                               </p>
                               {Array.isArray(answer) ? (
@@ -388,14 +363,14 @@ Respond with ONLY a JSON object in this exact format:
                                   {answer.map((item: string) => (
                                     <span
                                       key={item}
-                                      className="bg-orange-500/10 text-orange-300 border border-orange-500/20 rounded-md px-2 py-1 text-sm"
+                                      className="bg-[var(--accent-orange)]/10 text-[var(--accent-orange)] border order-[var(--accent-orange-border)]/20 rounded-md px-2 py-1 text-sm"
                                     >
                                       {item}
                                     </span>
                                   ))}
                                 </div>
                               ) : (
-                                <p className="text-white bg-gray-700/60 px-4 py-2 rounded-md">
+                                <p className="text-[var(--text-primary)] bg-[var(--bg-tertiary)]/60 px-4 py-2 rounded-md">
                                   {answer as string}
                                 </p>
                               )}
@@ -408,12 +383,12 @@ Respond with ONLY a JSON object in this exact format:
                 })}
               </div>
             ) : (
-              <div className="bg-gray-800/50 border border-gray-700 rounded-lg text-center p-12">
-                <p className="text-gray-400 mb-6">
+              <div className="bg-[var(--bg-secondary)]/50 border border-[var(--border-subtle)] rounded-lg text-center p-12">
+                <p className="text-[var(--text-secondary)] mb-6">
                   You haven't answered any discovery questions yet.
                 </p>
                 <Link to={createPageUrl("Chat")}>
-                  <Button className="bg-orange-500 hover:bg-orange-600 rounded-md px-6 py-3 text-lg">
+                  <Button className="bg-[var(--accent-orange)] hover:bg-[var(--accent-orange-hover)] rounded-md px-6 py-3 text-lg">
                     Start Discovery
                   </Button>
                 </Link>

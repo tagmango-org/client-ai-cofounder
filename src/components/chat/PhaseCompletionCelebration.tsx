@@ -71,7 +71,7 @@ const PhaseCompletionCelebration = ({ isVisible, onComplete, phaseTitle }: Phase
                     delay: Math.random() * 0.5,
                   }}
                 >
-                  <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                  <Star className="w-4 h-4 text-[var(--accent-orange)] fill-current" />
                 </motion.div>
               ))}
             </div>
