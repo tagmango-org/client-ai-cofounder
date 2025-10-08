@@ -58,7 +58,6 @@ interface ExtendedMessageCache {
   [conversationId: string]: ExtendedMessage[];
 }
 
-import { KnowledgeArticle } from "@/api/entities";
 import ConversationSidebar from "../components/conversations/ConversationSidebar";
 import DiscoveryProgressTracker from "../components/chat/DiscoveryProgressTracker";
 import { createPageUrl } from "@/utils";
@@ -421,11 +420,11 @@ export default function Chat() {
             ...userProfile,
             answers: userProfile?.answers || {},
           });
-          if (!knowledgeArticlesCached) {
-            const articles = (await KnowledgeArticle.list()) || [];
-            setKnowledgeArticleCache(articles as KnowledgeArticleType[]);
-            setKnowledgeArticlesCached(true);
-          }
+          // if (!knowledgeArticlesCached) {
+          //   const articles = (await KnowledgeArticle.list()) || [];
+          //   setKnowledgeArticleCache(articles as KnowledgeArticleType[]);
+          //   setKnowledgeArticlesCached(true);
+          // }
         } else {
           setDiscoveryState({ ...DEFAULT_DISCOVERY_STATE }); // Reset for anonymous
         }
@@ -788,11 +787,28 @@ export default function Chat() {
 
       const formattedResponse = formatAIResponse(aiMessageText);
 
-      await dataService.updateMessage(currentAppUser, {
+      console.log('🔄 Updating message in database:', {
         messageId: messageToRegenerate.id,
         updates: { text: formattedResponse },
+        conversationId: activeConversation.id,
+      });
+      
+      const updateResult = await dataService.updateMessage(currentAppUser, {
+        messageId: messageToRegenerate.id,
+        updates: { 
+          text: formattedResponse,
+          metadata: {
+            courseStructure: courseStructure || null,
+            couponStructure: couponStructure || null,
+            postStructure: postStructure || null,
+            serviceStructure: serviceStructure || null,
+            workshopStructure: workshopStructure || null,
+          }
+        },
         conversationId: activeConversation.id, // Pass convId for local storage
       });
+      
+      console.log('✅ Message update result:', updateResult);
 
       const updatedMessage = {
         ...messageToRegenerate,

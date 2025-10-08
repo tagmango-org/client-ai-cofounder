@@ -340,7 +340,25 @@ export const updateMessage = async (currentUser: User | null, { messageId, updat
         }
         
         try {
-            const response = await messageAPI.updateMessage(tagMangoUserId, messageId, updates);
+            // Transform updates to match backend API expectations
+            const backendUpdates = {
+                ...updates,
+                // Map 'text' field to 'content' for backend compatibility
+                ...(updates.text !== undefined && { content: updates.text }),
+            };
+            // Remove 'text' field if it exists since backend expects 'content'
+            if ('text' in backendUpdates) {
+                delete (backendUpdates as any).text;
+            }
+            
+            console.log('🔐 Calling backend updateMessage API:', {
+                userId: tagMangoUserId,
+                messageId,
+                backendUpdates
+            });
+            
+            const response = await messageAPI.updateMessage(tagMangoUserId, messageId, backendUpdates);
+            console.log('📡 Backend updateMessage response:', response);
             if (response.success && response.data?.message) {
                 // Transform to match expected format
                 const msg = response.data.message;

@@ -2,7 +2,6 @@ import Layout from "./Layout.tsx";
 
 import Chat from "./Chat";
 
-import KnowledgeBase from "./KnowledgeBase";
 
 import Profile from "./Profile";
 
@@ -16,7 +15,7 @@ import {
 const PAGES = {
   Chat: Chat,
 
-  KnowledgeBase: KnowledgeBase,
+  // KnowledgeBase: KnowledgeBase,
 
   Profile: Profile,
 };
@@ -48,7 +47,7 @@ function PagesContent() {
 
         <Route path="/Chat" element={<Chat />} />
 
-        <Route path="/KnowledgeBase" element={<KnowledgeBase />} />
+        {/* <Route path="/KnowledgeBase" element={<KnowledgeBase />} /> */}
 
         <Route path="/Profile" element={<Profile />} />
       </Routes>
