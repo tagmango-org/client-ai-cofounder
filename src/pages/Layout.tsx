@@ -121,11 +121,14 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
     let anonymousModeTimer: NodeJS.Timeout | undefined;
 
     const handleMessage = async (event: MessageEvent): Promise<void> => {
+      console.log('📨 Received message from parent:', event.data, 'Origin:', event.origin);
+      
       const isAuthMessage =
         event.data &&
         (event.data.type === "AUTHENTICATE_USER" ||
           event.data.type === "AI_ASSISTANT_AUTHENTICATE_USER" ||
-          event.data.type === "AI_ASSISTANT_ACTION.AUTHENTICATE_USER");
+          event.data.type === "AI_ASSISTANT_ACTION.AUTHENTICATE_USER" ||
+          event.data.type === "PARENT_AUTH_DATA");
 
       // Security: Uncomment and modify this line to restrict origins in production
       // if (!['http://localhost:3001', 'https://your-production-domain.com'].includes(event.origin)) {
@@ -135,11 +138,13 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
 
       // Fix: Check for the correct message type that parent is sending
       if (isAuthMessage) {
+        console.log('✅ Authentication message received! Type:', event.data.type);
         externalAuthReceived = true;
 
         // Clear the anonymous mode timer
         if (anonymousModeTimer) {
           clearTimeout(anonymousModeTimer);
+          console.log('⏰ Cleared anonymous mode timer - authentication received');
         }
 
         const {
@@ -239,6 +244,26 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
               "✅ App user set successfully with TagMango user ID:",
               appUser
             );
+            
+            // Send confirmation back to parent
+            if (window.parent) {
+              try {
+                window.parent.postMessage(
+                  {
+                    type: "AUTHENTICATION_SUCCESS",
+                    data: {
+                      userId: appUser.userId,
+                      name: appUser.name,
+                      authenticated: true
+                    }
+                  },
+                  "*"
+                );
+                console.log("📤 Sent authentication success confirmation to parent");
+              } catch (error) {
+                console.error("Failed to send confirmation to parent:", error);
+              }
+            }
           }
         } catch (error: any) {
           console.error("❌ Error handling external authentication:", error);
