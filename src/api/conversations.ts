@@ -3,9 +3,6 @@ import { API_BASE_URL } from './openai';
 export interface Conversation {
   id: string;
   title: string;
-  description?: string;
-  phase?: string;
-  metadata?: Record<string, any>;
   created_date: string;
   updated_date: string;
   app_user_id: string;
@@ -13,16 +10,10 @@ export interface Conversation {
 
 export interface CreateConversationRequest {
   title: string;
-  description?: string;
-  phase?: string;
-  metadata?: Record<string, any>;
 }
 
 export interface UpdateConversationRequest {
   title?: string;
-  description?: string;
-  phase?: string;
-  metadata?: Record<string, any>;
 }
 
 export interface ConversationResponse {

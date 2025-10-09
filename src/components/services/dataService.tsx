@@ -111,9 +111,6 @@ export const listConversations = async (currentUser: User | null): Promise<any> 
                         conversations: response.data.conversations.map(conv => ({
                             id: conv.id,
                             title: conv.title,
-                            description: conv.description,
-                            phase: conv.phase,
-                            metadata: conv.metadata,
                             created_date: conv.created_date,
                             updated_date: conv.updated_date,
                             app_user_id: conv.app_user_id
@@ -153,9 +150,6 @@ export const createConversation = async (currentUser: User | null, { title }: Cr
                         conversation: {
                             id: conv.id,
                             title: conv.title,
-                            description: conv.description,
-                            phase: conv.phase,
-                            metadata: conv.metadata,
                             created_date: conv.created_date,
                             updated_date: conv.updated_date,
                             app_user_id: conv.app_user_id
@@ -195,9 +189,6 @@ export const updateConversation = async (currentUser: User | null, { conversatio
                         conversation: {
                             id: conv.id,
                             title: conv.title,
-                            description: conv.description,
-                            phase: conv.phase,
-                            metadata: conv.metadata,
                             created_date: conv.created_date,
                             updated_date: conv.updated_date,
                             app_user_id: conv.app_user_id
