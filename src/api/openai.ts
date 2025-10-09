@@ -1,5 +1,5 @@
 // OpenAI API integration to replace Base44 calls
-export const API_BASE_URL =  'https://ai-cofounder-backend.onrender.com';
+export const API_BASE_URL =  'https://ai-cofounder-backend.onrender.com/api';
 
 // Type definitions for API functions
 interface InvokeLLMParams {
