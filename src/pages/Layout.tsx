@@ -208,10 +208,15 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "user-id": profileUserId,
+              "user-id": profileUserId, // Keep header for consistency
             },
             body: JSON.stringify({
+              userId: profileUserId, // Add userId to request body (required for POST)
               role: "user",
+              email: finalEmail,
+              name: finalName,
+              is_verified: false,
+              _app_role: "user",
               profile: {
                 status: "not_started",
                 currentPhaseIndex: 0,
