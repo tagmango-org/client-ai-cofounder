@@ -23,6 +23,30 @@ const getTagMangoUserIdFromToken = (token: string | null): string | null => {
   return null;
 };
 
+const getRefreshTokenFromURL = (): string | null => {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const refreshToken = urlParams.get('refreshToken');
+    console.log('🔑 Extracted refreshToken from URL:', refreshToken ? 'Token found' : 'No token found');
+    return refreshToken;
+  } catch (error) {
+    console.error("Error extracting refreshToken from URL:", error);
+    return null;
+  }
+};
+
+const getUserIdFromURL = (): string | null => {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('userId');
+    console.log('👤 Extracted userId from URL:', userId ? 'User ID found' : 'No user ID found');
+    return userId;
+  } catch (error) {
+    console.error("Error extracting userId from URL:", error);
+    return null;
+  }
+};
+
 interface LayoutContentProps {
   children: React.ReactNode;
   currentPageName: string;
@@ -37,14 +61,7 @@ interface MessageEvent {
   origin: string;
   data: {
     type: string;
-    data?: {
-      userId: string;
-      name: string;
-      email: string;
-      phone: string;
-      profilePic: string;
-      token?: string;
-    };
+    // Note: We now extract userId and refreshToken from URL parameters instead of event data
   };
 }
 
@@ -141,18 +158,21 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
           console.log('⏰ Cleared anonymous mode timer - authentication received');
         }
 
-        const {
-          userId,
-          token: parentToken,
-        } = event.data.data!;
+        // Extract refreshToken from URL parameters instead of event data
+        const refreshToken = getRefreshTokenFromURL();
+        
+        if (!refreshToken) {
+          console.error('❌ No refreshToken found in URL parameters');
+          return;
+        }
 
         // Get the appropriate token based on environment and availability
-        const token = getAuthToken(parentToken);
-        const user = await tagMangoAuth.verifyToken(parentToken as string);
+        const token = getAuthToken(refreshToken);
+        const user = await tagMangoAuth.verifyToken(refreshToken as string);
         logTokenInfo(token);
 console.log("user. ", user)
         try {
-          let finalUserId = userId;
+          let finalUserId = user._id;
           let finalName = user.name;
           let finalEmail = user.email;
           let finalPhone = user.phone;
