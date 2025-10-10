@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { useAppUser } from "../components/AppUserContext";
+import { useCurrentUser, useAppUserLoading, useUserStore } from "../stores/userStore";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
@@ -75,7 +75,9 @@ const SynthesisCard = ({ icon, title, text, delay }: SynthesisCardProps) => (
 );
 
 export default function ProfilePage() {
-  const { currentAppUser, setCurrentAppUser, appUserLoading } = useAppUser();
+  const currentAppUser = useCurrentUser();
+  const appUserLoading = useAppUserLoading();
+  const { setCurrentAppUser } = useUserStore();
   const user = currentAppUser;
   const [discoveryState, setDiscoveryState] =
     useState<ProfileDiscoveryState | null>(null);

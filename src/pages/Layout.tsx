@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { User } from "@/api/entities";
 import { ThemeProvider } from "../components/ThemeProvider";
-import { AppUserContext } from "../components/AppUserContext";
+import { useUserStore, useCurrentUser, useAppUserLoading } from "../stores/userStore";
 import { getAuthToken, logTokenInfo } from "../utils/tokenUtil";
 import { API_BASE_URL } from "@/api/openai";
 import { User as UserType } from "@/types/dataService";
+import tagMangoAuth from "../api/auth";
 
 const getTagMangoUserIdFromToken = (token: string | null): string | null => {
   if (!token) return null;
@@ -48,23 +49,10 @@ interface MessageEvent {
 }
 
 function LayoutContent({ children, currentPageName }: LayoutContentProps) {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const currentAppUser = useCurrentUser();
+  const appUserLoading = useAppUserLoading();
 
-  useEffect(() => {
-    const checkUser = async (): Promise<void> => {
-      try {
-        const currentUser = await User.me();
-        setUser(currentUser);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkUser();
-  }, []);
-
-  if (loading) {
+  if (appUserLoading) {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
         <div className="animate-spin rounded-full h-6 w-6 border border-[var(--border-subtle)] border-t-[var(--accent-orange)]"></div>
@@ -73,7 +61,7 @@ function LayoutContent({ children, currentPageName }: LayoutContentProps) {
   }
 
   // For KnowledgeBase page, show admin layout only for admins
-  if (currentPageName === "KnowledgeBase" && user && user.role === "admin") {
+  if (currentPageName === "KnowledgeBase" && currentAppUser && currentAppUser.role === "admin") {
     const AdminLayout = React.lazy(() => import("../components/AdminLayout"));
     return (
       <React.Suspense
@@ -89,7 +77,7 @@ function LayoutContent({ children, currentPageName }: LayoutContentProps) {
   }
 
   if (currentPageName === "Profile") {
-    if (user && user.role === "admin") {
+    if (currentAppUser && currentAppUser.role === "admin") {
       const AdminLayout = React.lazy(() => import("../components/AdminLayout"));
       return (
         <React.Suspense
@@ -112,13 +100,19 @@ function LayoutContent({ children, currentPageName }: LayoutContentProps) {
 }
 
 export default function Layout({ children, currentPageName }: LayoutProps) {
-  const [appUserLoading, setAppUserLoading] = useState<boolean>(true);
-  const [tagMangoUser, setTagMangoUser] = useState<any>(null);
-  const [currentAppUser, setCurrentAppUser] = useState<UserType | null>();
+  const { 
+    setCurrentAppUser, 
+    setAppUserLoading, 
+    setToken,
+    initializeAuth 
+  } = useUserStore();
 
   useEffect(() => {
     let externalAuthReceived: boolean = false;
     let anonymousModeTimer: NodeJS.Timeout | undefined;
+
+    // Initialize auth from persisted state
+    initializeAuth();
 
     const handleMessage = async (event: MessageEvent): Promise<void> => {
       console.log('📨 Received message from parent:', event.data, 'Origin:', event.origin);
@@ -149,49 +143,20 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
 
         const {
           userId,
-          name,
-          email,
-          phone,
-          profilePic,
           token: parentToken,
         } = event.data.data!;
 
         // Get the appropriate token based on environment and availability
         const token = getAuthToken(parentToken);
-
+        const user = await tagMangoAuth.verifyToken(parentToken as string);
         logTokenInfo(token);
-
+console.log("user. ", user)
         try {
-          let authenticatedUser: any = null;
           let finalUserId = userId;
-          let finalName = name;
-          let finalEmail = email;
-          let finalPhone = phone;
-          let finalProfilePic = profilePic;
-
-          if (token) {
-            try {
-              authenticatedUser = await User.authenticate(token);
-
-              if (authenticatedUser) {
-                setTagMangoUser(authenticatedUser);
-                finalUserId = authenticatedUser._id || userId;
-                finalName = authenticatedUser.name || name;
-                finalEmail = authenticatedUser.email || email;
-                finalPhone =
-                  authenticatedUser.phone ||
-                  authenticatedUser.phoneNumber ||
-                  phone;
-                finalProfilePic = authenticatedUser.profilePicUrl || profilePic;
-              }
-            } catch (authError: any) {
-              console.error("❌ TagMango authentication failed:", authError);
-              // Continue with app user creation using parent app data
-              console.log("🔄 Falling back to parent app user data");
-            }
-          } else {
-            console.log("⚠️ No token available for TagMango authentication");
-          }
+          let finalName = user.name;
+          let finalEmail = user.email;
+          let finalPhone = user.phone;
+          let finalProfilePic = user.profilePic;
 
           // Use TagMango user ID from token for profile operations
           const tagMangoUserId = getTagMangoUserIdFromToken(token);
@@ -313,21 +278,18 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
             logTokenInfo(standaloneToken);
 
             // Authenticate with TagMango using the token
-            const authUser = await User.authenticate(standaloneToken);
-            const platformUser = authUser.result;
+            const authUser = await tagMangoAuth.authenticate(standaloneToken);
 
-            if (platformUser) {
-              setTagMangoUser(platformUser);
-
+            if (authUser) {
               const tagMangoUserId =
                 getTagMangoUserIdFromToken(standaloneToken);
-              const fallbackUserId = platformUser._id || "dev-user";
+              const fallbackUserId = authUser._id || "dev-user";
               const profileUserId = tagMangoUserId || fallbackUserId;
 
-              const userName = platformUser.name || "Development User";
-              const userEmail = platformUser.email || "dev@example.com";
-              const userPhone = platformUser.phone || "";
-              const userProfilePic = platformUser.profilePicUrl || "";
+              const userName = authUser.name || "Development User";
+              const userEmail = authUser.email || "dev@example.com";
+              const userPhone = authUser.phone || "";
+              const userProfilePic = authUser.profilePic || "";
 
               const newProfile = {
                 userId: tagMangoUserId,
@@ -454,23 +416,13 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
   }, []); // Empty dependency array to run only once
 
   return (
-    <AppUserContext.Provider
-      value={{
-        currentAppUser: currentAppUser as any,
-        setCurrentAppUser: setCurrentAppUser as any,
-        appUserLoading,
-        tagMangoUser,
-        setTagMangoUser,
-      }}
-    >
-      <ThemeProvider>
-        <div className="min-h-screen transition-colors duration-300">
-          <LayoutContent
-            children={children}
-            currentPageName={currentPageName}
-          />
-        </div>
-      </ThemeProvider>
-    </AppUserContext.Provider>
+    <ThemeProvider>
+      <div className="min-h-screen transition-colors duration-300">
+        <LayoutContent
+          children={children}
+          currentPageName={currentPageName}
+        />
+      </div>
+    </ThemeProvider>
   );
 }

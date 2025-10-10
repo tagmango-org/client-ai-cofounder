@@ -3,25 +3,20 @@
  * Replaces the base44 auth with TagMango's external auth API
  */
 
-const TAGMANGO_API_BASE = 'https://api-prod-new.tagmango.com/api/v1';
+import { User } from '../types/dataService';
+import { useUserStore } from '../stores/userStore';
 
-// Type definitions for authentication
-interface TagMangoUser {
-  id: string;
-  name: string;
-  email: string;
-  [key: string]: any;
-}
+const TAGMANGO_API_BASE = 'https://api-prod-new.tagmango.com/api/v1';
 
 interface AuthResponse {
   success: boolean;
-  data?: TagMangoUser;
+  data?: User;
   error?: string;
 }
 
 class TagMangoAuth {
   private token: string | null;
-  private user: TagMangoUser | null;
+  private user: User | null;
 
   constructor() {
     this.token = localStorage.getItem('tagmango_token');
@@ -32,7 +27,7 @@ class TagMangoAuth {
       try {
         this.user = JSON.parse(storedUser);
       } catch (error) {
-        console.error('Failed to parse stored TagMango user:', error);
+        console.error('Failed to parse stored user:', error);
         this.user = null;
       }
     } else {
@@ -43,9 +38,9 @@ class TagMangoAuth {
   /**
    * Verify token with TagMango API and get user info
    * @param {string} token - JWT token to verify
-   * @returns {Promise<TagMangoUser>} User object if token is valid
+   * @returns {Promise<User>} User object if token is valid
    */
-  async verifyToken(token: string): Promise<TagMangoUser> {
+  async verifyToken(token: string): Promise<User> {
     try {
       const response = await fetch(
         `${TAGMANGO_API_BASE}/external/auth/verify-token?token=${encodeURIComponent(token)}`,
@@ -63,14 +58,41 @@ class TagMangoAuth {
       }
 
       const data = await response.json();
+      console.log(data)
+      // Transform the response to match our User interface
+      const user: User = {
+        _id: data.result._id,
+        userId: data.result._id || data.id || '',
+        email: data.result.email || '',
+        name: data.result.name || '',
+        disabled: data.result.disabled || null,
+        is_verified: data.result.is_verified || false,
+        _app_role: data.result._app_role || 'user',
+        role: data.result.role || 'user',
+        profilePic: data.result.profilePic || data.result.profile_pic,
+        createdAt: data.result.createdAt || data.result.created_at,
+        updatedAt: data.result.updatedAt || data.result.updated_at,
+        phone: data.result.phone || '',
+        profile: data.result.profile || {
+          status: "not_started",
+          currentPhaseIndex: 0,
+          currentQuestionIndexInPhase: 0,
+          answers: {}
+        }
+      };
       
-      // Store token and user data
+      // Store token and user data.result
       this.token = token;
-      this.user = data;
+      this.user = user;
       localStorage.setItem('tagmango_token', token);
-      localStorage.setItem('tagmango_user', JSON.stringify(data));
+      localStorage.setItem('tagmango_user', JSON.stringify(user));
 
-      return data;
+      // Update Zustand store
+      const { setCurrentAppUser, setToken } = useUserStore.getState();
+      setCurrentAppUser(user);
+      setToken(token);
+
+      return user;
     } catch (error) {
       console.error('TagMango auth verification failed:', error);
       this.clearAuth();
@@ -80,9 +102,9 @@ class TagMangoAuth {
 
   /**
    * Get current authenticated user
-   * @returns {Promise<TagMangoUser>} Current user or throws error if not authenticated
+   * @returns {Promise<User>} Current user or throws error if not authenticated
    */
-  async me(): Promise<TagMangoUser> {
+  async me(): Promise<User> {
     // If we have a cached user and token, return it
     if (this.user && this.token) {
       return this.user;
@@ -117,9 +139,9 @@ class TagMangoAuth {
   /**
    * Set authentication token (called when token is received from parent)
    * @param {string} token - JWT token
-   * @returns {Promise<TagMangoUser>} User object
+   * @returns {Promise<User>} User object
    */
-  async authenticate(token: string): Promise<TagMangoUser> {
+  async authenticate(token: string): Promise<User> {
     if (!token) {
       throw new Error('Token is required');
     }
@@ -151,6 +173,10 @@ class TagMangoAuth {
     this.user = null;
     localStorage.removeItem('tagmango_token');
     localStorage.removeItem('tagmango_user');
+    
+    // Update Zustand store
+    const { logout } = useUserStore.getState();
+    logout();
   }
 
   /**

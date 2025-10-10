@@ -65,7 +65,7 @@ import PhaseCompletionCelebration from "../components/chat/PhaseCompletionCelebr
 import MessageBubble from "../components/chat/MessageBubble";
 import SkeletonLoader from "../components/chat/SkeletonLoader";
 import PremiumLogo from "../components/PremiumLogo";
-import { useAppUser } from "../components/AppUserContext";
+import { useCurrentUser, useAppUserLoading, useUserStore } from "../stores/userStore";
 import * as dataService from "@/components/services/dataService";
 import { Button } from "@/components/ui/button";
 import {
@@ -171,7 +171,9 @@ export default function Chat() {
     useState<Conversation | null>(null);
   const [initialLoading, setInitialLoading] = useState<boolean>(true);
 
-  const { currentAppUser, appUserLoading, setCurrentAppUser } = useAppUser();
+  const currentAppUser = useCurrentUser();
+  const appUserLoading = useAppUserLoading();
+  const { setCurrentAppUser } = useUserStore();
 
   // Debug authentication status
   useEffect(() => {

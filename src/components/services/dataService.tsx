@@ -19,7 +19,7 @@
 
 import * as localConversationManager from '../localStorage/conversationManager';
 import * as localMessageManager from '../localStorage/messageManager';
-import { User as TagMangoAuth } from '@/api/entities';
+import tagMangoAuth from '@/api/auth';
 import { getUserProfile, updateUserProfile } from '@/api/profile';
 import * as conversationAPI from '@/api/conversations';
 import * as messageAPI from '@/api/messages';
@@ -39,28 +39,21 @@ const isRealUser: any = (user: any) => user && user._id !== 'anonymous';
 // Check if user is authenticated with TagMango
 const isTagMangoAuthenticated = (): boolean => {
   try {
-    return TagMangoAuth.isAuthenticated();
+    return tagMangoAuth.isAuthenticated();
   } catch (error) {
     console.error('TagMango authentication check failed:', error);
     return false;
   }
 };
 
-
-
-// Enhanced user check: real user AND TagMango authenticated
-const isAuthenticatedRealUser = (user: any): boolean => {
-  return isRealUser(user) && isTagMangoAuthenticated();
-};
-
 // Get TagMango user ID from authenticated user or token
 const getTagMangoUserId = (): string | null => {
   try {
     // First try to get from TagMango auth service
-    const tagMangoUser = TagMangoAuth.getToken();
-    if (tagMangoUser) {
+    const token = tagMangoAuth.getToken();
+    if (token) {
       // Parse JWT token to extract user ID
-      const tokenParts = tagMangoUser.split('.');
+      const tokenParts = token.split('.');
       if (tokenParts.length === 3) {
         const payload = JSON.parse(atob(tokenParts[1]));
         return payload.userid || payload.userId || payload.id || null;
@@ -71,6 +64,11 @@ const getTagMangoUserId = (): string | null => {
     console.error('Error extracting TagMango user ID:', error);
     return null;
   }
+};
+
+// Enhanced user check: real user AND TagMango authenticated
+const isAuthenticatedRealUser = (user: any): boolean => {
+  return isRealUser(user) && isTagMangoAuthenticated();
 };
 
 // Utility function to get authentication status for debugging
