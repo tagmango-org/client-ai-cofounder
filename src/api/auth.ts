@@ -6,7 +6,7 @@
 import { User } from '../types/dataService';
 import { useUserStore } from '../stores/userStore';
 
-const TAGMANGO_API_BASE = 'https://api-prod-new.tagmango.com/api/v1';
+const TAGMANGO_API_BASE = 'https://testing-api-v2.tagmango.com/api/v1';
 
 interface AuthResponse {
   success: boolean;
