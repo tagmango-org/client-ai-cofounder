@@ -24,28 +24,24 @@ const getTagMangoUserIdFromToken = (token: string | null): string | null => {
 };
 
 const getRefreshTokenFromURL = (): string | null => {
+  // Check if we're on the client side
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  
   try {
     const urlParams = new URLSearchParams(window.location.search);
-    const refreshToken = urlParams.get('refreshToken');
-    console.log('🔑 Extracted refreshToken from URL:', refreshToken ? 'Token found' : 'No token found');
+    // Check for both 'refreshToken' and 'accessToken' parameters
+    const refreshToken = urlParams.get('refreshToken') || urlParams.get('accessToken');
+    console.log('🔑 Extracted token from URL:', refreshToken ? 'Token found' : 'No token found');
+    console.log('🔍 URL parameters:', Object.fromEntries(urlParams.entries()));
     return refreshToken;
   } catch (error) {
-    console.error("Error extracting refreshToken from URL:", error);
+    console.error("Error extracting token from URL:", error);
     return null;
   }
 };
 
-const getUserIdFromURL = (): string | null => {
-  try {
-    const urlParams = new URLSearchParams(window.location.search);
-    const userId = urlParams.get('userId');
-    console.log('👤 Extracted userId from URL:', userId ? 'User ID found' : 'No user ID found');
-    return userId;
-  } catch (error) {
-    console.error("Error extracting userId from URL:", error);
-    return null;
-  }
-};
 
 interface LayoutContentProps {
   children: React.ReactNode;
@@ -125,314 +121,121 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
   } = useUserStore();
 
   useEffect(() => {
-    let externalAuthReceived: boolean = false;
-    let anonymousModeTimer: NodeJS.Timeout | undefined;
-
-    // Initialize auth from persisted state
-    initializeAuth();
-
-    const handleMessage = async (event: MessageEvent): Promise<void> => {
-      console.log('📨 Received message from parent:', event.data, 'Origin:', event.origin);
-      
-      const isAuthMessage =
-        event.data &&
-        (event.data.type === "AUTHENTICATE_USER" ||
-          event.data.type === "AI_ASSISTANT_AUTHENTICATE_USER" ||
-          event.data.type === "AI_ASSISTANT_ACTION.AUTHENTICATE_USER" ||
-          event.data.type === "PARENT_AUTH_DATA");
-
-      // Security: Uncomment and modify this line to restrict origins in production
-      // if (!['http://localhost:3001', 'https://your-production-domain.com'].includes(event.origin)) {
-      //   console.log('Message from unauthorized origin:', event.origin);
-      //   return;
-      // }
-
-      // Fix: Check for the correct message type that parent is sending
-      if (isAuthMessage) {
-        console.log('✅ Authentication message received! Type:', event.data.type);
-        externalAuthReceived = true;
-
-        // Clear the anonymous mode timer
-        if (anonymousModeTimer) {
-          clearTimeout(anonymousModeTimer);
-          console.log('⏰ Cleared anonymous mode timer - authentication received');
-        }
-
-        // Extract refreshToken from URL parameters instead of event data
-        const refreshToken = getRefreshTokenFromURL();
-        
-        if (!refreshToken) {
-          console.error('❌ No refreshToken found in URL parameters');
-          return;
-        }
-
-        // Get the appropriate token based on environment and availability
-        const token = getAuthToken(refreshToken);
-        const user = await tagMangoAuth.verifyToken(refreshToken as string);
-        logTokenInfo(token);
-console.log("user. ", user)
-        try {
-          let finalUserId = user._id;
-          let finalName = user.name;
-          let finalEmail = user.email;
-          let finalPhone = user.phone;
-          let finalProfilePic = user.profilePic;
-
-          // Use TagMango user ID from token for profile operations
-          const tagMangoUserId = getTagMangoUserIdFromToken(token);
-          const profileUserId = tagMangoUserId || finalUserId; // Fallback to finalUserId if token parsing fails
-
-          console.log("👤 Using user ID for profile:", {
-            tagMangoUserId,
-            finalUserId,
-            usingUserId: profileUserId,
-          });
-
-          // Use custom backend for user management instead of Base44
-          const response = await fetch(`${API_BASE_URL}/profile`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "user-id": profileUserId, // Keep header for consistency
-            },
-            body: JSON.stringify({
-              userId: profileUserId, // Add userId to request body (required for POST)
-              role: "user",
-              email: finalEmail,
-              name: finalName,
-              is_verified: false,
-              _app_role: "user",
-              profile: {
-                status: "not_started",
-                currentPhaseIndex: 0,
-                currentQuestionIndexInPhase: 0,
-                answers: {},
-              },
-            }),
-          });
-
-          const profileData = await response.json();
-
-          if (profileData.success && profileData.data) {
-            // Map the profile data to the expected app user format
-            // Use TagMango user ID as the primary identifier
-            const appUser = {
-              name: finalName,
-              email: finalEmail,
-              phone: finalPhone,
-              profilePic: finalProfilePic,
-              role: profileData.data.role,
-              profile: profileData.data.profile,
-              _id: profileUserId,
-              userId: profileUserId,
-              disabled: false,
-              is_verified: false,
-              _app_role: profileData.data._app_role || "user",
-            };
-            setCurrentAppUser(appUser);
-            console.log(
-              "✅ App user set successfully with TagMango user ID:",
-              appUser
-            );
-            
-            // Send confirmation back to parent
-            if (window.parent) {
-              try {
-                window.parent.postMessage(
-                  {
-                    type: "AUTHENTICATION_SUCCESS",
-                    data: {
-                      userId: appUser.userId,
-                      name: appUser.name,
-                      authenticated: true
-                    }
-                  },
-                  "*"
-                );
-                console.log("📤 Sent authentication success confirmation to parent");
-              } catch (error) {
-                console.error("Failed to send confirmation to parent:", error);
-              }
-            }
-          }
-        } catch (error: any) {
-          console.error("❌ Error handling external authentication:", error);
-          // Fallback to anonymous mode on error
-          setCurrentAppUser({
-            _id: "anonymous",
-            name: "Anonymous User",
-            profile: {
-              status: "not_started",
-              answers: {},
-              currentPhaseIndex: 0,
-              currentQuestionIndexInPhase: 0,
-            },
-            userId: "",
-            email: "",
-            disabled: null,
-            is_verified: false,
-            _app_role: "",
-            role: "",
-            phone: "",
-          });
-        } finally {
-          setAppUserLoading(false);
-        }
-      }
-    };
-
-    const determineUserMode = async (): Promise<void> => {
+    const authenticateUser = async (): Promise<void> => {
       setAppUserLoading(true);
 
-      const isEmbedded: boolean = window.self !== window.top;
+      // Extract accessToken from URL parameters
+      const accessToken = getRefreshTokenFromURL();
+      console.log('🔑 Extracted accessToken:', accessToken ? `${accessToken.substring(0, 20)}...` : 'No token found');
 
-      // Priority 1: Preview/Dev Mode (if token available AND not embedded)
-      if (!isEmbedded) {
-        const standaloneToken = getAuthToken();
-
-        if (standaloneToken) {
-          try {
-            console.log(
-              "Mode Determined: Preview/Dev (Token available, not embedded)"
-            );
-            logTokenInfo(standaloneToken);
-
-            // Authenticate with TagMango using the token
-            const authUser = await tagMangoAuth.authenticate(standaloneToken);
-
-            if (authUser) {
-              const tagMangoUserId =
-                getTagMangoUserIdFromToken(standaloneToken);
-              const fallbackUserId = authUser._id || "dev-user";
-              const profileUserId = tagMangoUserId || fallbackUserId;
-
-              const userName = authUser.name || "Development User";
-              const userEmail = authUser.email || "dev@example.com";
-              const userPhone = authUser.phone || "";
-              const userProfilePic = authUser.profilePic || "";
-
-              const newProfile = {
-                userId: tagMangoUserId,
-                email: userEmail,
-                name: userName,
-                phone: userPhone || "",
-                profilePic: userProfilePic || "",
-                is_verified: false,
-                _app_role: "user",
-                role: "user",
-                profile: {
-                  status: "not_started",
-                  currentPhaseIndex: 0,
-                  currentQuestionIndexInPhase: 0,
-                  answers: {},
-                },
-              };
-              // Use custom backend for user management instead of Base44
-              const response = await fetch(`${API_BASE_URL}/profile`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "user-id": profileUserId,
-                },
-                body: JSON.stringify(newProfile),
-              });
-
-              const profileData = await response.json();
-              console.log(profileData);
-
-              if (profileData.success && profileData.data) {
-                const appUser = {
-                  _id: profileUserId,
-                  userId: profileUserId,
-                  name: userName,
-                  email: userEmail,
-                  phone: userPhone,
-                  profilePic: userProfilePic,
-                  role: profileData.data.role || "user",
-                  profile: profileData.data.profile,
-                  disabled: false,
-                  is_verified: false,
-                  _app_role: profileData.data._app_role || "user",
-                };
-                setCurrentAppUser(appUser);
-              }
-              setAppUserLoading(false);
-              return; // Mode determined, stop here.
-            }
-          } catch (error: any) {
-            console.log(
-              "TagMango authentication failed in standalone mode:",
-              error
-            );
-            // Continue to embedded checks
-          }
-        } else {
-          console.log("No token available for standalone mode");
-        }
-      } else {
-        console.log("App is embedded, skipping Preview/Dev mode check.");
+      if (!accessToken) {
+        console.log('❌ No accessToken found - setting anonymous user');
+        setCurrentAppUser({
+          _id: "anonymous",
+          name: "Anonymous User",
+          profile: {
+            status: "not_started",
+            answers: {},
+            currentPhaseIndex: 0,
+            currentQuestionIndexInPhase: 0,
+          },
+          userId: "",
+          email: "",
+          disabled: null,
+          is_verified: false,
+          _app_role: "",
+          role: "",
+          phone: "",
+        });
+        setAppUserLoading(false);
+        return;
       }
 
-      // Priority 2: Authenticated User Mode (via parent app)
-      console.log("Priority 2: Waiting for authentication from parent app");
+      try {
+        // Verify token with TagMango
+        const user = await tagMangoAuth.verifyToken(accessToken);
+        console.log('✅ Token verified successfully:', user);
 
-      // Signal to parent that iframe is ready to receive messages
-      if (isEmbedded && window.parent) {
-        try {
-          window.parent.postMessage(
-            {
-              type: "IFRAME_READY",
-              data: { ready: true },
-            },
-            "*"
-          ); // Use specific origin in production
-          console.log("📤 Sent IFRAME_READY signal to parent");
-        } catch (error: any) {
-          console.error("Failed to send ready signal to parent:", error);
-        }
-      }
+        // Get the appropriate token based on environment and availability
+        const token = getAuthToken(accessToken);
+        const tagMangoUserId = getTagMangoUserIdFromToken(token);
+        const profileUserId = tagMangoUserId || user._id;
 
-      // Priority 3: Anonymous Mode (fallback with timeout)
-      anonymousModeTimer = setTimeout((): void => {
-        if (!externalAuthReceived) {
-          console.log(
-            "⏰ Timeout reached - Mode Determined: Anonymous (fallback)"
-          );
-          setCurrentAppUser({
-            _id: "anonymous",
-            name: "Anonymous User",
+        console.log("👤 Using user ID for profile:", {
+          tagMangoUserId,
+          finalUserId: user._id,
+          usingUserId: profileUserId,
+        });
+
+        // Create/update user profile in backend
+        const response = await fetch(`${API_BASE_URL}/profile`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "user-id": profileUserId,
+          },
+          body: JSON.stringify({
+            userId: profileUserId,
+            role: "user",
+            email: user.email,
+            name: user.name,
+            is_verified: false,
+            _app_role: "user",
             profile: {
               status: "not_started",
-              answers: {},
               currentPhaseIndex: 0,
               currentQuestionIndexInPhase: 0,
+              answers: {},
             },
-            userId: "",
-            email: "",
-            disabled: null,
+          }),
+        });
+
+        const profileData = await response.json();
+
+        if (profileData.success && profileData.data) {
+          const appUser = {
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            profilePic: user.profilePic,
+            role: profileData.data.role,
+            profile: profileData.data.profile,
+            _id: profileUserId,
+            userId: profileUserId,
+            disabled: false,
             is_verified: false,
-            _app_role: "",
-            role: "",
-            phone: "",
-          });
-          setAppUserLoading(false);
+            _app_role: profileData.data._app_role || "user",
+          };
+          setCurrentAppUser(appUser);
+          console.log("✅ Authenticated user set successfully:", appUser);
         }
-      }, 10000); // Increased timeout to 10 seconds
-    };
-
-    // Add message listener at useEffect level
-    window.addEventListener("message", handleMessage);
-
-    // Start the determination process
-    determineUserMode();
-
-    // Cleanup function
-    return (): void => {
-      window.removeEventListener("message", handleMessage);
-      if (anonymousModeTimer) {
-        clearTimeout(anonymousModeTimer);
+      } catch (error: any) {
+        console.error("❌ Token verification failed:", error);
+        // Set anonymous user on token verification failure
+        setCurrentAppUser({
+          _id: "anonymous",
+          name: "Anonymous User",
+          profile: {
+            status: "not_started",
+            answers: {},
+            currentPhaseIndex: 0,
+            currentQuestionIndexInPhase: 0,
+          },
+          userId: "",
+          email: "",
+          disabled: null,
+          is_verified: false,
+          _app_role: "",
+          role: "",
+          phone: "",
+        });
+      } finally {
+        setAppUserLoading(false);
       }
     };
+
+    // Start authentication
+    authenticateUser();
   }, []); // Empty dependency array to run only once
 
   return (
