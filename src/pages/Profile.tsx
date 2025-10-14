@@ -5,9 +5,6 @@ import { useCurrentUser, useAppUserLoading, useUserStore } from "../stores/userS
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
-  Edit,
-  Save,
-  X,
   Lightbulb,
   Target,
   Sparkles,
@@ -16,7 +13,6 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import * as dataService from "@/components/services/dataService";
 import { GenerateProfileSynthesis } from "@/api/openai";
 import { DISCOVERY_PHASES } from "@/data/chat";
 import { getUserProfile, updateUserProfile } from "@/api/profile";

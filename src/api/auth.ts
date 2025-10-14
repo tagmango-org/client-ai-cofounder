@@ -3,31 +3,26 @@
  * Replaces the base44 auth with TagMango's external auth API
  */
 
-import { User } from '../types/dataService';
-import { useUserStore } from '../stores/userStore';
+import { User } from "../types/dataService";
+import { useUserStore } from "../stores/userStore";
 
-const TAGMANGO_API_BASE = 'https://testing-api-v2.tagmango.com/api/v1';
+const TAGMANGO_API_BASE = import.meta.env.VITE_TAGMANGO_API_BASE;
 
-interface AuthResponse {
-  success: boolean;
-  data?: User;
-  error?: string;
-}
 
 class TagMangoAuth {
   private token: string | null;
   private user: User | null;
 
   constructor() {
-    this.token = localStorage.getItem('tagmango_token');
-    
+    this.token = localStorage.getItem("tagmango_token");
+
     // Also load user from localStorage if available
-    const storedUser = localStorage.getItem('tagmango_user');
+    const storedUser = localStorage.getItem("tagmango_user");
     if (storedUser) {
       try {
         this.user = JSON.parse(storedUser);
       } catch (error) {
-        console.error('Failed to parse stored user:', error);
+        console.error("Failed to parse stored user:", error);
         this.user = null;
       }
     } else {
@@ -43,49 +38,53 @@ class TagMangoAuth {
   async verifyToken(token: string): Promise<User> {
     try {
       const response = await fetch(
-        `${TAGMANGO_API_BASE}/external/auth/verify-token?token=${encodeURIComponent(token)}`,
+        `${TAGMANGO_API_BASE}/external/auth/verify-token?token=${encodeURIComponent(
+          token
+        )}`,
         {
-          method: 'GET',
+          method: "GET",
           headers: {
-            'accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
+            accept: "application/json",
+            "Content-Type": "application/json",
+          },
         }
       );
 
       if (!response.ok) {
-        throw new Error(`Authentication failed: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Authentication failed: ${response.status} ${response.statusText}`
+        );
       }
 
       const data = await response.json();
-      console.log(data)
+      console.log(data);
       // Transform the response to match our User interface
       const user: User = {
         _id: data.result._id,
-        userId: data.result._id || data.id || '',
-        email: data.result.email || '',
-        name: data.result.name || '',
+        userId: data.result._id || data.id || "",
+        email: data.result.email || "",
+        name: data.result.name || "",
         disabled: data.result.disabled || null,
         is_verified: data.result.is_verified || false,
-        _app_role: data.result._app_role || 'user',
-        role: data.result.role || 'user',
+        _app_role: data.result._app_role || "user",
+        role: data.result.role || "user",
         profilePic: data.result.profilePic || data.result.profile_pic,
         createdAt: data.result.createdAt || data.result.created_at,
         updatedAt: data.result.updatedAt || data.result.updated_at,
-        phone: data.result.phone || '',
+        phone: data.result.phone || "",
         profile: data.result.profile || {
           status: "not_started",
           currentPhaseIndex: 0,
           currentQuestionIndexInPhase: 0,
-          answers: {}
-        }
+          answers: {},
+        },
       };
-      
+
       // Store token and user data.result
       this.token = token;
       this.user = user;
-      localStorage.setItem('tagmango_token', token);
-      localStorage.setItem('tagmango_user', JSON.stringify(user));
+      localStorage.setItem("tagmango_token", token);
+      localStorage.setItem("tagmango_user", JSON.stringify(user));
 
       // Update Zustand store
       const { setCurrentAppUser, setToken } = useUserStore.getState();
@@ -94,7 +93,7 @@ class TagMangoAuth {
 
       return user;
     } catch (error) {
-      console.error('TagMango auth verification failed:', error);
+      console.error("TagMango auth verification failed:", error);
       this.clearAuth();
       throw error;
     }
@@ -111,29 +110,29 @@ class TagMangoAuth {
     }
 
     // Try to get from localStorage
-    const storedToken = localStorage.getItem('tagmango_token');
-    const storedUser = localStorage.getItem('tagmango_user');
+    const storedToken = localStorage.getItem("tagmango_token");
+    const storedUser = localStorage.getItem("tagmango_user");
 
-    console.log(storedToken)
-    console.log(storedUser)
+    console.log(storedToken);
+    console.log(storedUser);
 
     if (storedToken && storedUser) {
       try {
         this.token = storedToken;
         this.user = JSON.parse(storedUser);
-        
+
         // Verify the stored token is still valid
         const verifiedUser = await this.verifyToken(storedToken);
         return verifiedUser;
       } catch (error) {
-        console.log('Stored token is invalid, clearing auth');
+        console.log("Stored token is invalid, clearing auth");
         this.clearAuth();
         throw error;
       }
     }
 
     // No valid authentication found
-    throw new Error('User not authenticated');
+    throw new Error("User not authenticated");
   }
 
   /**
@@ -143,7 +142,7 @@ class TagMangoAuth {
    */
   async authenticate(token: string): Promise<User> {
     if (!token) {
-      throw new Error('Token is required');
+      throw new Error("Token is required");
     }
 
     return await this.verifyToken(token);
@@ -162,7 +161,7 @@ class TagMangoAuth {
    * @returns {string|null} Current JWT token
    */
   getToken(): string | null {
-    return this.token || localStorage.getItem('tagmango_token');
+    return this.token || localStorage.getItem("tagmango_token");
   }
 
   /**
@@ -171,9 +170,9 @@ class TagMangoAuth {
   clearAuth(): void {
     this.token = null;
     this.user = null;
-    localStorage.removeItem('tagmango_token');
-    localStorage.removeItem('tagmango_user');
-    
+    localStorage.removeItem("tagmango_token");
+    localStorage.removeItem("tagmango_user");
+
     // Update Zustand store
     const { logout } = useUserStore.getState();
     logout();
@@ -191,4 +190,3 @@ class TagMangoAuth {
 const tagMangoAuth = new TagMangoAuth();
 
 export default tagMangoAuth;
-

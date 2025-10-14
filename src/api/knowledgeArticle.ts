@@ -3,7 +3,7 @@
  * Replaces Base44 entities.KnowledgeArticle
  */
 
-import { API_BASE_URL } from './openai';
+import { API_BASE_URL } from "./openai";
 
 // Type definitions for KnowledgeArticle
 export interface KnowledgeArticle {
@@ -35,9 +35,9 @@ class KnowledgeArticleService {
   static async list(): Promise<KnowledgeArticle[]> {
     try {
       const response = await fetch(`${API_BASE_URL}/knowledge-articles`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
 
@@ -46,15 +46,18 @@ class KnowledgeArticleService {
       }
 
       const result: KnowledgeArticleResponse = await response.json();
-      
+
       if (result.success && result.data) {
         return result.data;
       } else {
-        console.warn('Knowledge articles API returned unsuccessful response:', result.error);
+        console.warn(
+          "Knowledge articles API returned unsuccessful response:",
+          result.error
+        );
         return [];
       }
     } catch (error) {
-      console.error('Error fetching knowledge articles:', error);
+      console.error("Error fetching knowledge articles:", error);
       // Return empty array as fallback
       return [];
     }
@@ -68,9 +71,9 @@ class KnowledgeArticleService {
   static async get(id: string): Promise<KnowledgeArticle | null> {
     try {
       const response = await fetch(`${API_BASE_URL}/knowledge-articles/${id}`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
 
@@ -84,7 +87,7 @@ class KnowledgeArticleService {
       const result = await response.json();
       return result.success ? result.data : null;
     } catch (error) {
-      console.error('Error fetching knowledge article:', error);
+      console.error("Error fetching knowledge article:", error);
       return null;
     }
   }
@@ -94,12 +97,14 @@ class KnowledgeArticleService {
    * @param {Partial<KnowledgeArticle>} articleData - Article data
    * @returns {Promise<KnowledgeArticle | null>} Created article or null if failed
    */
-  static async create(articleData: Partial<KnowledgeArticle>): Promise<KnowledgeArticle | null> {
+  static async create(
+    articleData: Partial<KnowledgeArticle>
+  ): Promise<KnowledgeArticle | null> {
     try {
       const response = await fetch(`${API_BASE_URL}/knowledge-articles`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(articleData),
       });
@@ -111,7 +116,7 @@ class KnowledgeArticleService {
       const result = await response.json();
       return result.success ? result.data : null;
     } catch (error) {
-      console.error('Error creating knowledge article:', error);
+      console.error("Error creating knowledge article:", error);
       return null;
     }
   }
@@ -122,12 +127,15 @@ class KnowledgeArticleService {
    * @param {Partial<KnowledgeArticle>} articleData - Updated article data
    * @returns {Promise<KnowledgeArticle | null>} Updated article or null if failed
    */
-  static async update(id: string, articleData: Partial<KnowledgeArticle>): Promise<KnowledgeArticle | null> {
+  static async update(
+    id: string,
+    articleData: Partial<KnowledgeArticle>
+  ): Promise<KnowledgeArticle | null> {
     try {
       const response = await fetch(`${API_BASE_URL}/knowledge-articles/${id}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(articleData),
       });
@@ -139,7 +147,7 @@ class KnowledgeArticleService {
       const result = await response.json();
       return result.success ? result.data : null;
     } catch (error) {
-      console.error('Error updating knowledge article:', error);
+      console.error("Error updating knowledge article:", error);
       return null;
     }
   }
@@ -152,9 +160,9 @@ class KnowledgeArticleService {
   static async delete(id: string): Promise<boolean> {
     try {
       const response = await fetch(`${API_BASE_URL}/knowledge-articles/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
 
@@ -165,7 +173,7 @@ class KnowledgeArticleService {
       const result = await response.json();
       return result.success;
     } catch (error) {
-      console.error('Error deleting knowledge article:', error);
+      console.error("Error deleting knowledge article:", error);
       return false;
     }
   }
@@ -177,12 +185,17 @@ class KnowledgeArticleService {
    */
   static async search(query: string): Promise<KnowledgeArticle[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/knowledge-articles/search?q=${encodeURIComponent(query)}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/knowledge-articles/search?q=${encodeURIComponent(
+          query
+        )}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -191,7 +204,7 @@ class KnowledgeArticleService {
       const result: KnowledgeArticleResponse = await response.json();
       return result.success && result.data ? result.data : [];
     } catch (error) {
-      console.error('Error searching knowledge articles:', error);
+      console.error("Error searching knowledge articles:", error);
       return [];
     }
   }

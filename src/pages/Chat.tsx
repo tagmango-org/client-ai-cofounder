@@ -2,8 +2,6 @@ import React, { useState, useRef, useEffect } from "react";
 import { ArrowUp, Loader2, X, Wand2, CheckCircle2, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Message as ChatMessage,
-  Conversation as ChatConversation,
   DiscoveryState,
   KnowledgeArticle as KnowledgeArticleType,
   KeyPressHandler,
@@ -19,15 +17,6 @@ import {
 } from "@/api/openai";
 import { User } from "@/types/dataService";
 
-interface LLMResponse {
-  ai_response_text: string;
-  action?: string;
-  course_creation_data?: Record<string, unknown>;
-  coupon_creation_data?: Record<string, unknown>;
-  post_creation_data?: Record<string, unknown>;
-  service_creation_data?: Record<string, unknown>;
-  workshop_creation_data?: Record<string, unknown>;
-}
 
 interface ExtendedMessage extends Message {
   isStreaming?: boolean;

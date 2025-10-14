@@ -11,14 +11,16 @@ interface ProfileResponse {
   error?: string;
 }
 
-export const getUserProfile = async (userId: string): Promise<ProfileResponse> => {
+export const getUserProfile = async (
+  userId: string
+): Promise<ProfileResponse> => {
   try {
     const response = await fetch(`${API_BASE_URL}/profile`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         "user-id": `${userId}`,
-      }
+      },
     });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -32,8 +34,10 @@ export const getUserProfile = async (userId: string): Promise<ProfileResponse> =
   }
 };
 
-
-export const updateUserProfile = async (userId: string, profileDetails: ProfileDetails): Promise<ProfileResponse> => {
+export const updateUserProfile = async (
+  userId: string,
+  profileDetails: ProfileDetails
+): Promise<ProfileResponse> => {
   try {
     const response = await fetch(`${API_BASE_URL}/profile`, {
       method: "PUT",
@@ -45,7 +49,7 @@ export const updateUserProfile = async (userId: string, profileDetails: ProfileD
         profileDetails,
       }),
     });
-console.log(response)
+    console.log(response);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -57,4 +61,3 @@ console.log(response)
     throw error;
   }
 };
-

@@ -6,6 +6,7 @@ import { getAuthToken, logTokenInfo } from "../utils/tokenUtil";
 import { API_BASE_URL } from "@/api/openai";
 import { User as UserType } from "@/types/dataService";
 import tagMangoAuth from "../api/auth";
+import { isTesting } from "@/utils/helper";
 
 const getTagMangoUserIdFromToken = (token: string | null): string | null => {
   if (!token) return null;
@@ -116,16 +117,15 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
   const { 
     setCurrentAppUser, 
     setAppUserLoading, 
-    setToken,
-    initializeAuth 
-  } = useUserStore();
+    setToken  } = useUserStore();
+
 
   useEffect(() => {
     const authenticateUser = async (): Promise<void> => {
       setAppUserLoading(true);
 
       // Extract accessToken from URL parameters
-      const accessToken = getRefreshTokenFromURL();
+      const accessToken = (!isTesting ? getRefreshTokenFromURL() : import.meta.env.VITE_TOKEN_TEST)
       console.log('🔑 Extracted accessToken:', accessToken ? `${accessToken.substring(0, 20)}...` : 'No token found');
 
       if (!accessToken) {
@@ -159,7 +159,7 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
         // Get the appropriate token based on environment and availability
         const token = getAuthToken(accessToken);
         const tagMangoUserId = getTagMangoUserIdFromToken(token);
-        const profileUserId = tagMangoUserId || user._id;
+        const profileUserId = user.userId || user._id;
 
         console.log("👤 Using user ID for profile:", {
           tagMangoUserId,

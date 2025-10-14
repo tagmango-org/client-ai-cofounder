@@ -1,10 +1,10 @@
-import { API_BASE_URL } from './openai';
+import { API_BASE_URL } from "./openai";
 
 export interface Message {
   id: string;
   conversationId: string;
   content: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   created_date: string;
   metadata?: Record<string, any>;
   courseDataAvailable?: boolean; // New optional field
@@ -13,7 +13,7 @@ export interface Message {
 export interface CreateMessageRequest {
   conversationId: string;
   content: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   metadata?: Record<string, any>;
   courseDataAvailable?: boolean; // New optional field
 }
@@ -47,30 +47,32 @@ export const getMessages = async (
       conversationId,
       limit: limit.toString(),
     });
-    
+
     if (cursor) {
-      params.append('cursor', cursor);
+      params.append("cursor", cursor);
     }
 
     const response = await fetch(`${API_BASE_URL}/messages?${params}`, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Content-Type': 'application/json',
-        'user-id': userId,
+        "Content-Type": "application/json",
+        "user-id": userId,
       },
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      throw new Error(
+        errorData.error || `HTTP error! status: ${response.status}`
+      );
     }
 
-    const data =  await response.json();
-    console.log(data)
+    const data = await response.json();
+    console.log(data);
 
     return data;
   } catch (error) {
-    console.error('Error fetching messages:', error);
+    console.error("Error fetching messages:", error);
     throw error;
   }
 };
@@ -82,22 +84,24 @@ export const createMessage = async (
 ): Promise<MessageResponse> => {
   try {
     const response = await fetch(`${API_BASE_URL}/messages`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'user-id': userId,
+        "Content-Type": "application/json",
+        "user-id": userId,
       },
       body: JSON.stringify(messageData),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      throw new Error(
+        errorData.error || `HTTP error! status: ${response.status}`
+      );
     }
 
     return await response.json();
   } catch (error) {
-    console.error('Error creating message:', error);
+    console.error("Error creating message:", error);
     throw error;
   }
 };
@@ -109,21 +113,23 @@ export const getMessage = async (
 ): Promise<MessageResponse> => {
   try {
     const response = await fetch(`${API_BASE_URL}/messages/${messageId}`, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Content-Type': 'application/json',
-        'user-id': userId,
+        "Content-Type": "application/json",
+        "user-id": userId,
       },
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      throw new Error(
+        errorData.error || `HTTP error! status: ${response.status}`
+      );
     }
 
     return await response.json();
   } catch (error) {
-    console.error('Error fetching message:', error);
+    console.error("Error fetching message:", error);
     throw error;
   }
 };
@@ -136,22 +142,24 @@ export const updateMessage = async (
 ): Promise<MessageResponse> => {
   try {
     const response = await fetch(`${API_BASE_URL}/messages/${messageId}`, {
-      method: 'PUT',
+      method: "PUT",
       headers: {
-        'Content-Type': 'application/json',
-        'user-id': userId,
+        "Content-Type": "application/json",
+        "user-id": userId,
       },
       body: JSON.stringify(updates),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      throw new Error(
+        errorData.error || `HTTP error! status: ${response.status}`
+      );
     }
 
     return await response.json();
   } catch (error) {
-    console.error('Error updating message:', error);
+    console.error("Error updating message:", error);
     throw error;
   }
 };
@@ -163,21 +171,23 @@ export const deleteMessage = async (
 ): Promise<MessageResponse> => {
   try {
     const response = await fetch(`${API_BASE_URL}/messages/${messageId}`, {
-      method: 'DELETE',
+      method: "DELETE",
       headers: {
-        'Content-Type': 'application/json',
-        'user-id': userId,
+        "Content-Type": "application/json",
+        "user-id": userId,
       },
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      throw new Error(
+        errorData.error || `HTTP error! status: ${response.status}`
+      );
     }
 
     return await response.json();
   } catch (error) {
-    console.error('Error deleting message:', error);
+    console.error("Error deleting message:", error);
     throw error;
   }
 };

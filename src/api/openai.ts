@@ -1,5 +1,5 @@
 // OpenAI API integration to replace Base44 calls
-export const API_BASE_URL =  'https://ai-cofounder-backend.onrender.com/api';
+export const API_BASE_URL = "https://ai-cofounder-backend.onrender.com/api";
 
 // Type definitions for API functions
 interface InvokeLLMParams {
@@ -23,18 +23,22 @@ interface GenerateProfileSynthesisParams {
 }
 
 // Main LLM function to replace InvokeLLM
-export const InvokeLLM = async ({ userMessage, conversationHistory, discoveryAnswers }: InvokeLLMParams) => {
+export const InvokeLLM = async ({
+  userMessage,
+  conversationHistory,
+  discoveryAnswers,
+}: InvokeLLMParams) => {
   try {
     const response = await fetch(`${API_BASE_URL}/generate/llm`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         userMessage,
         conversationHistory,
-        discoveryAnswers
-      })
+        discoveryAnswers,
+      }),
     });
 
     if (!response.ok) {
@@ -44,23 +48,26 @@ export const InvokeLLM = async ({ userMessage, conversationHistory, discoveryAns
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error calling InvokeLLM:', error);
+    console.error("Error calling InvokeLLM:", error);
     throw error;
   }
 };
 
 // Generate conversation title
-export const GenerateTitle = async ({ userText, aiText }: GenerateTitleParams) => {
+export const GenerateTitle = async ({
+  userText,
+  aiText,
+}: GenerateTitleParams) => {
   try {
     const response = await fetch(`${API_BASE_URL}/generate/title`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         userText,
-        aiText
-      })
+        aiText,
+      }),
     });
 
     if (!response.ok) {
@@ -70,23 +77,26 @@ export const GenerateTitle = async ({ userText, aiText }: GenerateTitleParams) =
     const title = await response.json();
     return title;
   } catch (error) {
-    console.error('Error generating title:', error);
+    console.error("Error generating title:", error);
     throw error;
   }
 };
 
 // Generate phase insights for discovery
-export const GeneratePhaseInsights = async ({ phaseAnswers, phaseTitle }: GeneratePhaseInsightsParams) => {
+export const GeneratePhaseInsights = async ({
+  phaseAnswers,
+  phaseTitle,
+}: GeneratePhaseInsightsParams) => {
   try {
     const response = await fetch(`${API_BASE_URL}/generate/insights`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         phaseAnswers,
-        phaseTitle
-      })
+        phaseTitle,
+      }),
     });
 
     if (!response.ok) {
@@ -96,22 +106,24 @@ export const GeneratePhaseInsights = async ({ phaseAnswers, phaseTitle }: Genera
     const insights = await response.json();
     return insights;
   } catch (error) {
-    console.error('Error generating insights:', error);
+    console.error("Error generating insights:", error);
     throw error;
   }
 };
 
 // Generate profile synthesis
-export const GenerateProfileSynthesis = async ({ answers }: GenerateProfileSynthesisParams) => {
+export const GenerateProfileSynthesis = async ({
+  answers,
+}: GenerateProfileSynthesisParams) => {
   try {
     const response = await fetch(`${API_BASE_URL}/generate/synthesis`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        answers
-      })
+        answers,
+      }),
     });
 
     if (!response.ok) {
@@ -121,7 +133,7 @@ export const GenerateProfileSynthesis = async ({ answers }: GenerateProfileSynth
     const synthesis = await response.json();
     return synthesis;
   } catch (error) {
-    console.error('Error generating synthesis:', error);
+    console.error("Error generating synthesis:", error);
     throw error;
   }
 };
@@ -129,13 +141,14 @@ export const GenerateProfileSynthesis = async ({ answers }: GenerateProfileSynth
 // Placeholder functions for other Base44 integrations that might be used
 export const UploadFile = async (file: File): Promise<any> => {
   // TODO: Implement file upload to your backend
-  console.warn('UploadFile not yet implemented');
-  throw new Error('UploadFile not yet implemented');
+  console.warn("UploadFile not yet implemented");
+  throw new Error("UploadFile not yet implemented");
 };
 
-export const ExtractDataFromUploadedFile = async (fileId: string): Promise<any> => {
+export const ExtractDataFromUploadedFile = async (
+  fileId: string
+): Promise<any> => {
   // TODO: Implement file data extraction
-  console.warn('ExtractDataFromUploadedFile not yet implemented');
-  throw new Error('ExtractDataFromUploadedFile not yet implemented');
+  console.warn("ExtractDataFromUploadedFile not yet implemented");
+  throw new Error("ExtractDataFromUploadedFile not yet implemented");
 };
-
