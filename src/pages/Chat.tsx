@@ -70,6 +70,13 @@ const DEFAULT_DISCOVERY_STATE: DiscoveryState = {
   answers: {},
 };
 
+// Streaming configuration for AI responses
+const STREAMING_CONFIG = {
+  wordsPerChunk: 4, // Number of words to display per chunk
+  chunkDelay: 40,   // Delay in milliseconds between chunks (reduced from 50ms)
+  enableStreaming: true, // Set to false for instant display
+};
+
 const generateLocalId = () =>
   `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -616,17 +623,38 @@ export default function Chat() {
       const workshopStructure = response.workshop_creation_data;
 
       const formattedResponse = formatAIResponse(aiMessageText);
-      let streamedText = "";
-      for (const char of formattedResponse) {
-        streamedText += char;
+      
+      if (STREAMING_CONFIG.enableStreaming) {
+        // Fast streaming implementation - stream by words instead of characters
+        const words = formattedResponse.split(' ');
+        let streamedText = "";
+        
+        for (let i = 0; i < words.length; i += STREAMING_CONFIG.wordsPerChunk) {
+          const chunk = words.slice(i, i + STREAMING_CONFIG.wordsPerChunk).join(' ');
+          streamedText += (i === 0 ? '' : ' ') + chunk;
+          
+          setMessages((prev) =>
+            (Array.isArray(prev) ? prev : []).map((m) =>
+              m.id === tempAiMessageId
+                ? { ...m, text: streamedText, isStreaming: true }
+                : m
+            )
+          );
+          
+          // Only add delay if not the last chunk
+          if (i + STREAMING_CONFIG.wordsPerChunk < words.length) {
+            await new Promise((r) => setTimeout(r, STREAMING_CONFIG.chunkDelay));
+          }
+        }
+      } else {
+        // Instant display - no streaming
         setMessages((prev) =>
           (Array.isArray(prev) ? prev : []).map((m) =>
             m.id === tempAiMessageId
-              ? { ...m, text: streamedText, isStreaming: true }
+              ? { ...m, text: formattedResponse, isStreaming: false }
               : m
           )
         );
-        await new Promise((r) => setTimeout(r, 10));
       }
 
       const createAiMsgResponse = await dataService.createMessage(
@@ -777,6 +805,16 @@ export default function Chat() {
       const workshopStructure = response.workshop_creation_data;
 
       const formattedResponse = formatAIResponse(aiMessageText);
+
+      // For regeneration, we'll display instantly since user is waiting for a fix
+      setMessages((prev) => {
+        const safeMessages = Array.isArray(prev) ? prev : [];
+        return safeMessages.map((msg: ExtendedMessage) =>
+          msg.id === messageToRegenerate.id 
+            ? { ...msg, text: formattedResponse, isStreaming: false }
+            : msg
+        );
+      });
 
       console.log('🔄 Updating message in database:', {
         messageId: messageToRegenerate.id,
