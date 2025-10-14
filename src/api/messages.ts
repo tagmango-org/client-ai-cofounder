@@ -1,4 +1,3 @@
-import { API_BASE_URL } from "./openai";
 
 export interface Message {
   id: string;
@@ -52,7 +51,7 @@ export const getMessages = async (
       params.append("cursor", cursor);
     }
 
-    const response = await fetch(`${API_BASE_URL}/messages?${params}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/messages?${params}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -83,7 +82,7 @@ export const createMessage = async (
   messageData: CreateMessageRequest
 ): Promise<MessageResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/messages`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -112,7 +111,7 @@ export const getMessage = async (
   messageId: string
 ): Promise<MessageResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/messages/${messageId}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/messages/${messageId}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -141,7 +140,7 @@ export const updateMessage = async (
   updates: UpdateMessageRequest
 ): Promise<MessageResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/messages/${messageId}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/messages/${messageId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -170,7 +169,7 @@ export const deleteMessage = async (
   messageId: string
 ): Promise<MessageResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/messages/${messageId}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/messages/${messageId}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",

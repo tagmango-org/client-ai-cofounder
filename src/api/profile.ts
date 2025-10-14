@@ -1,4 +1,3 @@
-import { API_BASE_URL } from "./openai";
 
 // Type definitions for profile API functions
 interface ProfileDetails {
@@ -15,7 +14,7 @@ export const getUserProfile = async (
   userId: string
 ): Promise<ProfileResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/profile`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/profile`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -39,7 +38,7 @@ export const updateUserProfile = async (
   profileDetails: ProfileDetails
 ): Promise<ProfileResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/profile`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/profile`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",

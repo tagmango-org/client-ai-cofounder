@@ -1,4 +1,3 @@
-import { API_BASE_URL } from "./openai";
 
 export interface Conversation {
   id: string;
@@ -31,7 +30,7 @@ export const getConversations = async (
   userId: string
 ): Promise<ConversationResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/conversations`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/conversations`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -59,7 +58,7 @@ export const createConversation = async (
   conversationData: CreateConversationRequest
 ): Promise<ConversationResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/conversations`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/conversations`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -89,7 +88,7 @@ export const getConversation = async (
 ): Promise<ConversationResponse> => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/conversations/${conversationId}`,
+      `${import.meta.env.VITE_API_BASE_URL}/conversations/${conversationId}`,
       {
         method: "GET",
         headers: {
@@ -121,7 +120,7 @@ export const updateConversation = async (
 ): Promise<ConversationResponse> => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/conversations/${conversationId}`,
+      `${import.meta.env.VITE_API_BASE_URL}/conversations/${conversationId}`,
       {
         method: "PUT",
         headers: {
@@ -153,7 +152,7 @@ export const deleteConversation = async (
 ): Promise<ConversationResponse> => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/conversations/${conversationId}`,
+      `${import.meta.env.VITE_API_BASE_URL}/conversations/${conversationId}`,
       {
         method: "DELETE",
         headers: {

@@ -1,10 +1,7 @@
-import React, { useState, useEffect } from "react";
-import { User } from "@/api/entities";
+import React, { useEffect } from "react";
 import { ThemeProvider } from "../components/ThemeProvider";
 import { useUserStore, useCurrentUser, useAppUserLoading } from "../stores/userStore";
-import { getAuthToken, logTokenInfo } from "../utils/tokenUtil";
-import { API_BASE_URL } from "@/api/openai";
-import { User as UserType } from "@/types/dataService";
+import { getAuthToken } from "../utils/tokenUtil";
 import tagMangoAuth from "../api/auth";
 import { isTesting } from "@/utils/helper";
 
@@ -168,7 +165,7 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
         });
 
         // Create/update user profile in backend
-        const response = await fetch(`${API_BASE_URL}/profile`, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/profile`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
