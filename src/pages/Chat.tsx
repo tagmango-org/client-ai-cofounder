@@ -567,8 +567,8 @@ export default function Chat() {
         role: "user",
       }
     );
-    if (createUserMsgResponse.data.messageData) {
-      userMessageForDb.id = createUserMsgResponse.data.messageData.id;
+    if (createUserMsgResponse.data.message) {
+      userMessageForDb.id = createUserMsgResponse.data.message.id;
     }
 
     const currentMessages = Array.isArray(messages) ? messages : [];
@@ -672,7 +672,7 @@ export default function Chat() {
           },
         }
       );
-      const finalAiMessage = createAiMsgResponse.data.messageData;
+      const finalAiMessage = createAiMsgResponse.data.message;
 
       const finalMessageObject: ExtendedMessage = {
         ...(finalAiMessage || {
@@ -816,30 +816,40 @@ export default function Chat() {
         );
       });
 
+      // Update the message in the database
       console.log('🔄 Updating message in database:', {
         messageId: messageToRegenerate.id,
         updates: { text: formattedResponse },
         conversationId: activeConversation.id,
       });
       
-      const updateResult = await dataService.updateMessage(currentAppUser, {
-        messageId: messageToRegenerate.id,
-        updates: { 
-          text: formattedResponse,
-          metadata: {
-            courseStructure: courseStructure || null,
-            couponStructure: couponStructure || null,
-            postStructure: postStructure || null,
-            serviceStructure: serviceStructure || null,
-            workshopStructure: workshopStructure || null,
-          }
-        },
-        conversationId: activeConversation.id, // Pass convId for local storage
-      });
-      
-      console.log('✅ Message update result:', updateResult);
+      try {
+        const updateResult = await dataService.updateMessage(currentAppUser, {
+          messageId: messageToRegenerate.id,
+          updates: { 
+            text: formattedResponse,
+            metadata: {
+              courseStructure: courseStructure || null,
+              couponStructure: couponStructure || null,
+              postStructure: postStructure || null,
+              serviceStructure: serviceStructure || null,
+              workshopStructure: workshopStructure || null,
+            }
+          },
+          conversationId: activeConversation.id,
+        });
+        
+        if (updateResult?.data?.message) {
+          console.log('✅ Message successfully updated in database:', updateResult.data.message);
+        } else {
+          console.warn('⚠️ Message update returned unexpected format:', updateResult);
+        }
+      } catch (updateError) {
+        console.error('❌ Failed to update message in database:', updateError);
+        // Continue anyway - the UI is already updated
+      }
 
-      const updatedMessage = {
+      const updatedMessage: ExtendedMessage = {
         ...messageToRegenerate,
         text: formattedResponse,
         courseStructure: courseStructure,

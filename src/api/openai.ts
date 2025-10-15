@@ -1,5 +1,3 @@
-// OpenAI API integration to replace Base44 calls
-export const API_BASE_URL = "https://ai-cofounder-backend.onrender.com/api";
 
 // Type definitions for API functions
 interface InvokeLLMParams {
@@ -29,7 +27,7 @@ export const InvokeLLM = async ({
   discoveryAnswers,
 }: InvokeLLMParams) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/generate/llm`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/generate/llm`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -59,7 +57,7 @@ export const GenerateTitle = async ({
   aiText,
 }: GenerateTitleParams) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/generate/title`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/generate/title`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -88,7 +86,7 @@ export const GeneratePhaseInsights = async ({
   phaseTitle,
 }: GeneratePhaseInsightsParams) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/generate/insights`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/generate/insights`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -116,7 +114,7 @@ export const GenerateProfileSynthesis = async ({
   answers,
 }: GenerateProfileSynthesisParams) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/generate/synthesis`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/generate/synthesis`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

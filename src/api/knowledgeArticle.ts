@@ -3,7 +3,6 @@
  * Replaces Base44 entities.KnowledgeArticle
  */
 
-import { API_BASE_URL } from "./openai";
 
 // Type definitions for KnowledgeArticle
 export interface KnowledgeArticle {
@@ -34,7 +33,7 @@ class KnowledgeArticleService {
    */
   static async list(): Promise<KnowledgeArticle[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/knowledge-articles`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/knowledge-articles`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -70,7 +69,7 @@ class KnowledgeArticleService {
    */
   static async get(id: string): Promise<KnowledgeArticle | null> {
     try {
-      const response = await fetch(`${API_BASE_URL}/knowledge-articles/${id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/knowledge-articles/${id}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -101,7 +100,7 @@ class KnowledgeArticleService {
     articleData: Partial<KnowledgeArticle>
   ): Promise<KnowledgeArticle | null> {
     try {
-      const response = await fetch(`${API_BASE_URL}/knowledge-articles`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/knowledge-articles`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -132,7 +131,7 @@ class KnowledgeArticleService {
     articleData: Partial<KnowledgeArticle>
   ): Promise<KnowledgeArticle | null> {
     try {
-      const response = await fetch(`${API_BASE_URL}/knowledge-articles/${id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/knowledge-articles/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -159,7 +158,7 @@ class KnowledgeArticleService {
    */
   static async delete(id: string): Promise<boolean> {
     try {
-      const response = await fetch(`${API_BASE_URL}/knowledge-articles/${id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/knowledge-articles/${id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -186,7 +185,7 @@ class KnowledgeArticleService {
   static async search(query: string): Promise<KnowledgeArticle[]> {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/knowledge-articles/search?q=${encodeURIComponent(
+        `${import.meta.env.VITE_API_BASE_URL}/knowledge-articles/search?q=${encodeURIComponent(
           query
         )}`,
         {
