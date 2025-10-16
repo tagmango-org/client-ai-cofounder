@@ -17,7 +17,6 @@ import {
 } from "@/api/openai";
 import { User } from "@/types/dataService";
 
-
 interface ExtendedMessage extends Message {
   isStreaming?: boolean;
   courseStructure?: Record<string, unknown>;
@@ -54,7 +53,11 @@ import PhaseCompletionCelebration from "../components/chat/PhaseCompletionCelebr
 import MessageBubble from "../components/chat/MessageBubble";
 import SkeletonLoader from "../components/chat/SkeletonLoader";
 import PremiumLogo from "../components/PremiumLogo";
-import { useCurrentUser, useAppUserLoading, useUserStore } from "../stores/userStore";
+import {
+  useCurrentUser,
+  useAppUserLoading,
+  useUserStore,
+} from "../stores/userStore";
 import * as dataService from "@/components/services/dataService";
 import { Button } from "@/components/ui/button";
 import {
@@ -73,7 +76,7 @@ const DEFAULT_DISCOVERY_STATE: DiscoveryState = {
 // Streaming configuration for AI responses
 const STREAMING_CONFIG = {
   wordsPerChunk: 4, // Number of words to display per chunk
-  chunkDelay: 40,   // Delay in milliseconds between chunks (reduced from 50ms)
+  chunkDelay: 40, // Delay in milliseconds between chunks (reduced from 50ms)
   enableStreaming: true, // Set to false for instant display
 };
 
@@ -623,16 +626,18 @@ export default function Chat() {
       const workshopStructure = response.workshop_creation_data;
 
       const formattedResponse = formatAIResponse(aiMessageText);
-      
+
       if (STREAMING_CONFIG.enableStreaming) {
         // Fast streaming implementation - stream by words instead of characters
-        const words = formattedResponse.split(' ');
+        const words = formattedResponse.split(" ");
         let streamedText = "";
-        
+
         for (let i = 0; i < words.length; i += STREAMING_CONFIG.wordsPerChunk) {
-          const chunk = words.slice(i, i + STREAMING_CONFIG.wordsPerChunk).join(' ');
-          streamedText += (i === 0 ? '' : ' ') + chunk;
-          
+          const chunk = words
+            .slice(i, i + STREAMING_CONFIG.wordsPerChunk)
+            .join(" ");
+          streamedText += (i === 0 ? "" : " ") + chunk;
+
           setMessages((prev) =>
             (Array.isArray(prev) ? prev : []).map((m) =>
               m.id === tempAiMessageId
@@ -640,10 +645,12 @@ export default function Chat() {
                 : m
             )
           );
-          
+
           // Only add delay if not the last chunk
           if (i + STREAMING_CONFIG.wordsPerChunk < words.length) {
-            await new Promise((r) => setTimeout(r, STREAMING_CONFIG.chunkDelay));
+            await new Promise((r) =>
+              setTimeout(r, STREAMING_CONFIG.chunkDelay)
+            );
           }
         }
       } else {
@@ -810,23 +817,23 @@ export default function Chat() {
       setMessages((prev) => {
         const safeMessages = Array.isArray(prev) ? prev : [];
         return safeMessages.map((msg: ExtendedMessage) =>
-          msg.id === messageToRegenerate.id 
+          msg.id === messageToRegenerate.id
             ? { ...msg, text: formattedResponse, isStreaming: false }
             : msg
         );
       });
 
       // Update the message in the database
-      console.log('🔄 Updating message in database:', {
+      console.log("🔄 Updating message in database:", {
         messageId: messageToRegenerate.id,
         updates: { text: formattedResponse },
         conversationId: activeConversation.id,
       });
-      
+
       try {
         const updateResult = await dataService.updateMessage(currentAppUser, {
           messageId: messageToRegenerate.id,
-          updates: { 
+          updates: {
             text: formattedResponse,
             metadata: {
               courseStructure: courseStructure || null,
@@ -834,18 +841,24 @@ export default function Chat() {
               postStructure: postStructure || null,
               serviceStructure: serviceStructure || null,
               workshopStructure: workshopStructure || null,
-            }
+            },
           },
           conversationId: activeConversation.id,
         });
-        
+
         if (updateResult?.data?.message) {
-          console.log('✅ Message successfully updated in database:', updateResult.data.message);
+          console.log(
+            "✅ Message successfully updated in database:",
+            updateResult.data.message
+          );
         } else {
-          console.warn('⚠️ Message update returned unexpected format:', updateResult);
+          console.warn(
+            "⚠️ Message update returned unexpected format:",
+            updateResult
+          );
         }
       } catch (updateError) {
-        console.error('❌ Failed to update message in database:', updateError);
+        console.error("❌ Failed to update message in database:", updateError);
         // Continue anyway - the UI is already updated
       }
 
@@ -1401,7 +1414,7 @@ I now have your complete coaching blueprint and will use it to provide deeply pe
   if (!appReady || appUserLoading || conversationsLoading) {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
-        <SkeletonLoader />
+        <div className="animate-spin rounded-full h-6 w-6 border border-[var(--border-subtle)] border-t-[var(--accent-orange)]"></div>
       </div>
     );
   }
