@@ -598,7 +598,65 @@ export default function Chat() {
         discoveryAnswers: discoveryState.answers || {},
       };
 
-      const response = await InvokeLLM(llmPayload);
+      // Real-time streaming from backend
+      let accumulatedRawText = "";
+      let hasStartedDisplaying = false;
+      
+      const response = await InvokeLLM({
+        ...llmPayload,
+        stream: true,
+        onChunk: (chunk: string) => {
+          // Accumulate raw text for JSON parsing
+          accumulatedRawText += chunk;
+          
+          // Try to extract ai_response_text from accumulated JSON
+          try {
+            // Look for ai_response_text in the partial JSON - match everything including incomplete strings
+            const match = accumulatedRawText.match(/"ai_response_text"\s*:\s*"([^"]*)"/);
+            if (!match) {
+              // Try to match even if closing quote isn't there yet (for actively streaming text)
+              const partialMatch = accumulatedRawText.match(/"ai_response_text"\s*:\s*"(.*?)(?:"|$)/s);
+              if (partialMatch && partialMatch[1]) {
+                const decodedText = partialMatch[1]
+                  .replace(/\\n/g, '\n')
+                  .replace(/\\t/g, '\t')
+                  .replace(/\\r/g, '\r')
+                  .replace(/\\"/g, '"')
+                  .replace(/\\\\/g, '\\');
+                
+                hasStartedDisplaying = true;
+                setMessages((prev) =>
+                  (Array.isArray(prev) ? prev : []).map((m) =>
+                    m.id === tempAiMessageId
+                      ? { ...m, text: decodedText, isStreaming: true }
+                      : m
+                  )
+                );
+              }
+            } else if (match[1]) {
+              // Complete match with closing quote
+              const decodedText = match[1]
+                .replace(/\\n/g, '\n')
+                .replace(/\\t/g, '\t')
+                .replace(/\\r/g, '\r')
+                .replace(/\\"/g, '"')
+                .replace(/\\\\/g, '\\');
+              
+              hasStartedDisplaying = true;
+              setMessages((prev) =>
+                (Array.isArray(prev) ? prev : []).map((m) =>
+                  m.id === tempAiMessageId
+                    ? { ...m, text: decodedText, isStreaming: true }
+                    : m
+                )
+              );
+            }
+          } catch (e) {
+            // Ignore parsing errors during streaming
+            console.debug('Streaming parse error:', e);
+          }
+        }
+      });
 
       if (response.action === "redirect_to_profile") {
         const redirectMessage =
@@ -627,42 +685,14 @@ export default function Chat() {
 
       const formattedResponse = formatAIResponse(aiMessageText);
 
-      if (STREAMING_CONFIG.enableStreaming) {
-        // Fast streaming implementation - stream by words instead of characters
-        const words = formattedResponse.split(" ");
-        let streamedText = "";
-
-        for (let i = 0; i < words.length; i += STREAMING_CONFIG.wordsPerChunk) {
-          const chunk = words
-            .slice(i, i + STREAMING_CONFIG.wordsPerChunk)
-            .join(" ");
-          streamedText += (i === 0 ? "" : " ") + chunk;
-
-          setMessages((prev) =>
-            (Array.isArray(prev) ? prev : []).map((m) =>
-              m.id === tempAiMessageId
-                ? { ...m, text: streamedText, isStreaming: true }
-                : m
-            )
-          );
-
-          // Only add delay if not the last chunk
-          if (i + STREAMING_CONFIG.wordsPerChunk < words.length) {
-            await new Promise((r) =>
-              setTimeout(r, STREAMING_CONFIG.chunkDelay)
-            );
-          }
-        }
-      } else {
-        // Instant display - no streaming
-        setMessages((prev) =>
-          (Array.isArray(prev) ? prev : []).map((m) =>
-            m.id === tempAiMessageId
-              ? { ...m, text: formattedResponse, isStreaming: false }
-              : m
-          )
-        );
-      }
+      // Update with final formatted response
+      setMessages((prev) =>
+        (Array.isArray(prev) ? prev : []).map((m) =>
+          m.id === tempAiMessageId
+            ? { ...m, text: formattedResponse, isStreaming: false }
+            : m
+        )
+      );
 
       const createAiMsgResponse = await dataService.createMessage(
         currentAppUser,
@@ -785,7 +815,62 @@ export default function Chat() {
         discoveryAnswers: discoveryState.answers || {},
       };
 
-      const response = await InvokeLLM(llmPayload);
+      // Real-time streaming for regeneration
+      let accumulatedRawText = "";
+      
+      const response = await InvokeLLM({
+        ...llmPayload,
+        stream: true,
+        onChunk: (chunk: string) => {
+          // Accumulate raw text for JSON parsing
+          accumulatedRawText += chunk;
+          
+          // Try to extract ai_response_text from accumulated JSON
+          try {
+            // Look for ai_response_text in the partial JSON - match everything including incomplete strings
+            const match = accumulatedRawText.match(/"ai_response_text"\s*:\s*"([^"]*)"/);
+            if (!match) {
+              // Try to match even if closing quote isn't there yet (for actively streaming text)
+              const partialMatch = accumulatedRawText.match(/"ai_response_text"\s*:\s*"(.*?)(?:"|$)/s);
+              if (partialMatch && partialMatch[1]) {
+                const decodedText = partialMatch[1]
+                  .replace(/\\n/g, '\n')
+                  .replace(/\\t/g, '\t')
+                  .replace(/\\r/g, '\r')
+                  .replace(/\\"/g, '"')
+                  .replace(/\\\\/g, '\\');
+                
+                setMessages((prev) =>
+                  (Array.isArray(prev) ? prev : []).map((m) =>
+                    m.id === messageToRegenerate.id
+                      ? { ...m, text: decodedText, isStreaming: true }
+                      : m
+                  )
+                );
+              }
+            } else if (match[1]) {
+              // Complete match with closing quote
+              const decodedText = match[1]
+                .replace(/\\n/g, '\n')
+                .replace(/\\t/g, '\t')
+                .replace(/\\r/g, '\r')
+                .replace(/\\"/g, '"')
+                .replace(/\\\\/g, '\\');
+              
+              setMessages((prev) =>
+                (Array.isArray(prev) ? prev : []).map((m) =>
+                  m.id === messageToRegenerate.id
+                    ? { ...m, text: decodedText, isStreaming: true }
+                    : m
+                )
+              );
+            }
+          } catch (e) {
+            // Ignore parsing errors during streaming
+            console.debug('Streaming parse error:', e);
+          }
+        }
+      });
 
       if (response.action === "redirect_to_profile") {
         const redirectMessage =
@@ -813,7 +898,7 @@ export default function Chat() {
 
       const formattedResponse = formatAIResponse(aiMessageText);
 
-      // For regeneration, we'll display instantly since user is waiting for a fix
+      // Update with final formatted response
       setMessages((prev) => {
         const safeMessages = Array.isArray(prev) ? prev : [];
         return safeMessages.map((msg: ExtendedMessage) =>

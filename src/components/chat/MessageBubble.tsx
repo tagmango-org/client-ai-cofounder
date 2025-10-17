@@ -96,7 +96,8 @@ const MessageBubble: React.FC<MessageBubbleProps | any> = ({ msg, thinkingMessag
 
       {/* AI Message Content */}
       <div className="flex-1 max-w-none">
-        {isStreaming ? (
+        {isStreaming && !msg.text ? (
+          // Only show loader if streaming and no text yet
           <div className="flex items-center text-[var(--text-primary)] gap-2">
             <motion.div
               animate={{ rotate: 360 }}
@@ -114,6 +115,14 @@ const MessageBubble: React.FC<MessageBubbleProps | any> = ({ msg, thinkingMessag
               >
                 {msg.text}
               </ReactMarkdown>
+              {/* Show cursor when streaming */}
+              {isStreaming && (
+                <motion.span
+                  animate={{ opacity: [1, 0, 1] }}
+                  transition={{ duration: 0.8, repeat: Infinity }}
+                  className="inline-block w-1.5 h-4 bg-[var(--accent-orange)] ml-0.5"
+                />
+              )}
             </div>
 
             {/* Action Buttons */}

@@ -20,12 +20,17 @@ interface GenerateProfileSynthesisParams {
   answers: any;
 }
 
-// Main LLM function to replace InvokeLLM
+// Main LLM function to replace InvokeLLM with streaming support
 export const InvokeLLM = async ({
   userMessage,
   conversationHistory,
   discoveryAnswers,
-}: InvokeLLMParams) => {
+  stream = true,
+  onChunk,
+}: InvokeLLMParams & { 
+  stream?: boolean; 
+  onChunk?: (chunk: string) => void;
+}) => {
   try {
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/generate/llm`, {
       method: "POST",
@@ -36,6 +41,7 @@ export const InvokeLLM = async ({
         userMessage,
         conversationHistory,
         discoveryAnswers,
+        stream,
       }),
     });
 
@@ -43,8 +49,60 @@ export const InvokeLLM = async ({
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const data = await response.json();
-    return data;
+    // Handle streaming response
+    if (stream && response.body) {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedText = '';
+      let finalResponse: any = null;
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const jsonStr = line.slice(6);
+              try {
+                const data = JSON.parse(jsonStr);
+                
+                if (data.error) {
+                  throw new Error(data.error);
+                }
+                
+                if (data.done) {
+                  // Final response with metadata
+                  finalResponse = data;
+                } else if (data.chunk && onChunk) {
+                  // Stream chunk to callback
+                  accumulatedText += data.chunk;
+                  onChunk(data.chunk);
+                }
+              } catch (parseError) {
+                // Ignore parse errors for incomplete chunks
+                if (jsonStr.trim()) {
+                  console.warn('Failed to parse SSE data:', jsonStr);
+                }
+              }
+            }
+          }
+        }
+
+        return finalResponse || { ai_response_text: accumulatedText };
+      } catch (streamError) {
+        console.error('Streaming error:', streamError);
+        throw streamError;
+      }
+    } else {
+      // Non-streaming fallback
+      const data = await response.json();
+      return data;
+    }
   } catch (error) {
     console.error("Error calling InvokeLLM:", error);
     throw error;
