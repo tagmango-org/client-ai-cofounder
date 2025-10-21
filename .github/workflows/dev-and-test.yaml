@@ -1,0 +1,27 @@
+name: Dev to Amazon Amplify
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Call Amplify Webhook
+        run: |
+          curl -X POST \
+          -d {} \
+          "${{ secrets.AMPLIFY_WEBHOOK_URL }}" \
+          -H "Content-Type:application/json"
