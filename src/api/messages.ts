@@ -1,4 +1,3 @@
-
 export interface Message {
   id: string;
   conversationId: string;
@@ -51,13 +50,16 @@ export const getMessages = async (
       params.append("cursor", cursor);
     }
 
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/messages?${params}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "user-id": userId,
-      },
-    });
+    const response = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/messages?${params}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "user-id": userId,
+        },
+      }
+    );
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -67,7 +69,6 @@ export const getMessages = async (
     }
 
     const data = await response.json();
-    console.log(data);
 
     return data;
   } catch (error) {
@@ -82,14 +83,17 @@ export const createMessage = async (
   messageData: CreateMessageRequest
 ): Promise<MessageResponse> => {
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/messages`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "user-id": userId,
-      },
-      body: JSON.stringify(messageData),
-    });
+    const response = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/messages`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "user-id": userId,
+        },
+        body: JSON.stringify(messageData),
+      }
+    );
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -111,13 +115,16 @@ export const getMessage = async (
   messageId: string
 ): Promise<MessageResponse> => {
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/messages/${messageId}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "user-id": userId,
-      },
-    });
+    const response = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/messages/${messageId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "user-id": userId,
+        },
+      }
+    );
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -140,14 +147,17 @@ export const updateMessage = async (
   updates: UpdateMessageRequest
 ): Promise<MessageResponse> => {
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/messages/${messageId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "user-id": userId,
-      },
-      body: JSON.stringify(updates),
-    });
+    const response = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/messages/${messageId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "user-id": userId,
+        },
+        body: JSON.stringify(updates),
+      }
+    );
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -169,13 +179,16 @@ export const deleteMessage = async (
   messageId: string
 ): Promise<MessageResponse> => {
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/messages/${messageId}`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        "user-id": userId,
-      },
-    });
+    const response = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/messages/${messageId}`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "user-id": userId,
+        },
+      }
+    );
 
     if (!response.ok) {
       const errorData = await response.json();

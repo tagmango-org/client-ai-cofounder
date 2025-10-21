@@ -9,18 +9,17 @@ export interface UpdateUserProfile {
   answers?: Record<string, string | string[]>;
 }
 
+
 export interface UpdateUser {
   _id?: string;
   userId?: string;
   email?: string;
   name?: string;
-  disabled?: boolean | null;
-  is_verified?: boolean;
-  _app_role?: string; // e.g. "user", "admin"
   role?: string;      // e.g. "user", "creator"
   profilePic?: string;
-  createdAt?: string; // ISO date string
-  updatedAt?: string; // ISO date string
+  created_date?: Date;
+  updated_date?: Date;
+  created_by?: string;
   phone?: string;
   profile?: UserProfile;
 }
@@ -38,9 +37,6 @@ export interface User {
   userId: string;
   email: string;
   name: string;
-  disabled: boolean | null;
-  is_verified: boolean;
-  _app_role: string; // e.g. "user", "admin"
   role: string;      // e.g. "user", "creator"
   profilePic?: string;
   createdAt?: string; // ISO date string
@@ -144,6 +140,5 @@ export type MessageService = {
 
 export type ProfileService = {
   updateProfile: (currentUser: User | null, profileData: Record<string, unknown>) => Promise<ApiResponse>;
-  getOrCreateAppUser: (userData: User) => Promise<ApiResponse>;
 };
 

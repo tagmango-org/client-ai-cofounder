@@ -57,21 +57,16 @@ class TagMangoAuth {
       }
 
       const data = await response.json();
-      console.log(data);
-      // Transform the response to match our User interface
       const user: User = {
         _id: data.result._id,
         userId: data.result._id || data.id || "",
         email: data.result.email || "",
         name: data.result.name || "",
-        disabled: data.result.disabled || null,
-        is_verified: data.result.is_verified || false,
-        _app_role: data.result._app_role || "user",
         role: data.result.role || "user",
         profilePic: data.result.profilePic || data.result.profile_pic,
         createdAt: data.result.createdAt || data.result.created_at,
         updatedAt: data.result.updatedAt || data.result.updated_at,
-        phone: data.result.phone || "",
+        phone: String(data.result.phone) || "",
         profile: data.result.profile || {
           status: "not_started",
           currentPhaseIndex: 0,

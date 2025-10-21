@@ -1,38 +1,18 @@
 import React, { useEffect } from "react";
 import { ThemeProvider } from "../components/ThemeProvider";
 import { useUserStore, useCurrentUser, useAppUserLoading } from "../stores/userStore";
-import { getAuthToken } from "../utils/tokenUtil";
 import tagMangoAuth from "../api/auth";
-import { isTesting } from "@/utils/helper";
 
-const getTagMangoUserIdFromToken = (token: string | null): string | null => {
-  if (!token) return null;
-
-  try {
-    const tokenParts = token.split(".");
-    if (tokenParts.length === 3) {
-      const payload = JSON.parse(atob(tokenParts[1]));
-      return payload.userid || payload.userId || payload.id || null;
-    }
-  } catch (error) {
-    console.error("Error parsing TagMango token:", error);
-  }
-
-  return null;
-};
 
 const getRefreshTokenFromURL = (): string | null => {
-  // Check if we're on the client side
   if (typeof window === 'undefined') {
     return null;
   }
   
   try {
     const urlParams = new URLSearchParams(window.location.search);
-    // Check for both 'refreshToken' and 'accessToken' parameters
     const refreshToken = urlParams.get('refreshToken') || urlParams.get('accessToken');
     console.log('🔑 Extracted token from URL:', refreshToken ? 'Token found' : 'No token found');
-    console.log('🔍 URL parameters:', Object.fromEntries(urlParams.entries()));
     return refreshToken;
   } catch (error) {
     console.error("Error extracting token from URL:", error);
@@ -51,13 +31,6 @@ interface LayoutProps {
   currentPageName: string;
 }
 
-interface MessageEvent {
-  origin: string;
-  data: {
-    type: string;
-    // Note: We now extract userId and refreshToken from URL parameters instead of event data
-  };
-}
 
 function LayoutContent({ children, currentPageName }: LayoutContentProps) {
   const currentAppUser = useCurrentUser();
@@ -71,7 +44,6 @@ function LayoutContent({ children, currentPageName }: LayoutContentProps) {
     );
   }
 
-  // For KnowledgeBase page, show admin layout only for admins
   if (currentPageName === "KnowledgeBase" && currentAppUser && currentAppUser.role === "admin") {
     const AdminLayout = React.lazy(() => import("../components/AdminLayout"));
     return (
@@ -121,8 +93,7 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
     const authenticateUser = async (): Promise<void> => {
       setAppUserLoading(true);
 
-      // Extract accessToken from URL parameters
-      const accessToken = (!isTesting ? getRefreshTokenFromURL() : import.meta.env.VITE_TOKEN_TEST)
+      const accessToken =  getRefreshTokenFromURL()
       console.log('🔑 Extracted accessToken:', accessToken ? `${accessToken.substring(0, 20)}...` : 'No token found');
 
       if (!accessToken) {
@@ -138,9 +109,6 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
           },
           userId: "",
           email: "",
-          disabled: null,
-          is_verified: false,
-          _app_role: "",
           role: "",
           phone: "",
         });
@@ -149,22 +117,10 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
       }
 
       try {
-        // Verify token with TagMango
         const user = await tagMangoAuth.verifyToken(accessToken);
-        console.log('✅ Token verified successfully:', user);
-
-        // Get the appropriate token based on environment and availability
-        const token = getAuthToken(accessToken);
-        const tagMangoUserId = getTagMangoUserIdFromToken(token);
         const profileUserId = user.userId || user._id;
 
-        console.log("👤 Using user ID for profile:", {
-          tagMangoUserId,
-          finalUserId: user._id,
-          usingUserId: profileUserId,
-        });
 
-        // Create/update user profile in backend
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/profile`, {
           method: "POST",
           headers: {
@@ -176,8 +132,8 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
             role: "user",
             email: user.email,
             name: user.name,
-            is_verified: false,
-            _app_role: "user",
+            phone: user.phone,
+            created_by: profileUserId,
             profile: {
               status: "not_started",
               currentPhaseIndex: 0,
@@ -199,16 +155,11 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
             profile: profileData.data.profile,
             _id: profileUserId,
             userId: profileUserId,
-            disabled: false,
-            is_verified: false,
-            _app_role: profileData.data._app_role || "user",
           };
           setCurrentAppUser(appUser);
-          console.log("✅ Authenticated user set successfully:", appUser);
         }
       } catch (error: any) {
         console.error("❌ Token verification failed:", error);
-        // Set anonymous user on token verification failure
         setCurrentAppUser({
           _id: "anonymous",
           name: "Anonymous User",
@@ -220,9 +171,6 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
           },
           userId: "",
           email: "",
-          disabled: null,
-          is_verified: false,
-          _app_role: "",
           role: "",
           phone: "",
         });
@@ -231,9 +179,8 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
       }
     };
 
-    // Start authentication
     authenticateUser();
-  }, []); // Empty dependency array to run only once
+  }, []);
 
   return (
     <ThemeProvider>

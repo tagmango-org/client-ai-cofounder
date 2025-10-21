@@ -33,6 +33,7 @@ import type {
   UpdateMessageParams,
   UpdateUser,
 } from '@/types/dataService';
+import { Phone } from 'lucide-react';
 
 const isRealUser: any = (user: any) => user && user._id !== 'anonymous';
 
@@ -442,54 +443,3 @@ export const getProfile = async (currentUser: User | null): Promise<any> => {
     });
 };
 
-// Added function to handle fetching the dev admin user specifically for the Chat page to use.
-// This now uses TagMango user ID from token instead of passed userData.userId
-export const getOrCreateAppUser = async (userData: UpdateUser): Promise<any> => {
-    console.log('🔐 Using custom backend API - getOrCreateAppUser');
-    
-    // Get TagMango user ID from token - this is the authoritative user ID
-    const tagMangoUserId = getTagMangoUserId();
-    if (!tagMangoUserId) {
-        console.error('❌ No TagMango user ID found in token for getOrCreateAppUser');
-        return { data: { success: false, error: 'TagMango user ID not found' } };
-    }
-    
-    console.log('👤 Using TagMango user ID for getOrCreateAppUser:', tagMangoUserId);
-    
-    try {
-        // First try to get existing profile using TagMango user ID
-        const existingProfile = await getUserProfile(tagMangoUserId);
-        if (existingProfile.success && existingProfile.data) {
-            console.log('✅ Found existing profile for TagMango user');
-            return { data: { success: true, appUser: existingProfile.data } };
-        }
-    } catch (error) {
-        console.log('Profile not found for TagMango user, will create new one');
-    }
-    
-    // If profile doesn't exist, create it using the TagMango user ID
-    try {
-        const newProfile = {
-            userId: tagMangoUserId,
-            email: userData.email,
-            name: userData.name,
-            is_verified: userData.is_verified,
-            _app_role: userData._app_role,
-            role: userData.role || 'user',
-            profile: {
-                status: 'not_started',
-                currentPhaseIndex: 0,
-                currentQuestionIndexInPhase: 0,
-                answers: {}
-            },
-            profilePic: userData.profilePic || ''
-        };
-        
-        console.log('🆕 Creating new profile for TagMango user:', tagMangoUserId);
-        const response = await updateUserProfile(tagMangoUserId, newProfile);
-        return { data: { success: true, appUser: response.data } };
-    } catch (error) {
-        console.error('Error creating app user with custom backend:', error);
-        return { data: { success: false, error: 'Failed to create app user' } };
-    }
-};

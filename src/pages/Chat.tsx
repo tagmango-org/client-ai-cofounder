@@ -178,7 +178,6 @@ export default function Chat() {
   useEffect(() => {
     if (!appUserLoading && currentAppUser) {
       const authStatus = dataService.getAuthenticationStatus(currentAppUser);
-      console.log("🔍 Authentication Status:", authStatus);
     }
   }, [currentAppUser, appUserLoading]);
 
@@ -229,31 +228,6 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
 
-  const createDevAdminUser = async () => {
-    try {
-      console.log("Creating dev admin user...");
-      const response = await dataService.getOrCreateAppUser({
-        userId: "dev_admin",
-        email: "devadmin@example.com",
-        name: "Dev Admin",
-        phone: "",
-        profilePic: "",
-        is_verified: true,
-        _app_role: "admin",
-        role: "admin",
-        _id: "",
-      });
-
-      if (response.data.success) {
-        setCurrentAppUser(response.data.appUser || null);
-        console.log("Dev admin user created/retrieved:", response.data.appUser);
-      } else {
-        console.error("Failed to create dev admin user:", response.data);
-      }
-    } catch (error) {
-      console.error("Error creating dev admin user:", error);
-    }
-  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
