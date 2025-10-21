@@ -64,8 +64,8 @@ class TagMangoAuth {
         name: data.result.name || "",
         role: data.result.role || "user",
         profilePic: data.result.profilePic || data.result.profile_pic,
-        createdAt: data.result.createdAt || data.result.created_at,
-        updatedAt: data.result.updatedAt || data.result.updated_at,
+        created_date: data.result.createdAt || data.result.created_at,
+        updated_date: data.result.updatedAt || data.result.updated_at,
         phone: String(data.result.phone) || "",
         profile: data.result.profile || {
           status: "not_started",

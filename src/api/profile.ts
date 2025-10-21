@@ -1,13 +1,11 @@
+import { User, UpdateUser } from "../types/dataService";
 
 // Type definitions for profile API functions
-interface ProfileDetails {
-  [key: string]: any;
-}
-
 interface ProfileResponse {
   success: boolean;
-  data?: any;
+  data?: User;
   error?: string;
+  message?: string;
 }
 
 export const getUserProfile = async (
@@ -35,7 +33,7 @@ export const getUserProfile = async (
 
 export const updateUserProfile = async (
   userId: string,
-  profileDetails: ProfileDetails
+  profileDetails: Partial<UpdateUser>
 ): Promise<ProfileResponse> => {
   try {
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/profile`, {

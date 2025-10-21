@@ -16,6 +16,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { GenerateProfileSynthesis } from "@/api/openai";
 import { DISCOVERY_PHASES } from "@/data/chat";
 import { getUserProfile, updateUserProfile } from "@/api/profile";
+import { UserProfile, UserStatus } from "@/types/dataService";
 
 interface ProfileSynthesis {
   niche_clarity: string;
@@ -31,7 +32,7 @@ interface DiscoveryAnswers {
 }
 
 interface ProfileDiscoveryState {
-  status: "not_started" | "in_progress" | "completed";
+  status: UserStatus;
   answers: DiscoveryAnswers;
   currentPhaseIndex?: number;
   currentQuestionIndexInPhase?: number;
@@ -92,7 +93,7 @@ export default function ProfilePage() {
     if (currentAppUser) {
       const profile = currentAppUser.profile;
       setDiscoveryState({
-        status: profile?.status || "not_started",
+        status: profile?.status as UserStatus  || "not_started",
         answers: profile?.answers || {},
         currentPhaseIndex: profile?.currentPhaseIndex,
         currentQuestionIndexInPhase: profile?.currentQuestionIndexInPhase,
@@ -168,20 +169,17 @@ Respond with ONLY a JSON object in this exact format:
       );
       console.log(res, "updated");
       const appUser = {
-        id: res.data?.id || res.data?._id || res.data?.userId || "",
+        id:  res.data?._id || res.data?.userId || "",
         email: res.data?.email || "",
         _id: res.data?._id || res.data?.userId || "",
         name: res.data?.name || "",
         phone: res.data?.phone || "",
-        profile: res.data.profile,
+        profile: res.data?.profile as UserProfile,
         profilePic: res.data?.profilePic || "",
         role: res.data?.role || "user",
         userId: res.data?.userId || "",
-        disabled: res.data?.disabled ?? false,
-        is_verified: res.data?.is_verified ?? false,
-        _app_role: res.data?._app_role ?? "",
       };
-      setCurrentAppUser(appUser || null);
+      setCurrentAppUser(appUser);
     } catch (error) {
       console.error("Failed to update user name:", error);
       setEditedName(currentAppUser.name || "");

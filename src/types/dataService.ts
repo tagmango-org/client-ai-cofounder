@@ -1,5 +1,5 @@
-type UserStatus = "not_started" | "in_progress" | "completed";
-type UserRole = "user" | "admin";
+export type UserStatus = "not_started" | "in_progress" | "paused" | "completed";
+export type UserRole = "user" | "admin" | "moderator";
 
 
 export interface UpdateUserProfile {
@@ -15,7 +15,7 @@ export interface UpdateUser {
   userId?: string;
   email?: string;
   name?: string;
-  role?: string;      // e.g. "user", "creator"
+  role?: UserRole;
   profilePic?: string;
   created_date?: Date;
   updated_date?: Date;
@@ -37,10 +37,11 @@ export interface User {
   userId: string;
   email: string;
   name: string;
-  role: string;      // e.g. "user", "creator"
+  role: UserRole;
   profilePic?: string;
-  createdAt?: string; // ISO date string
-  updatedAt?: string; // ISO date string
+  created_date?: Date;
+  updated_date?: Date;
+  created_by?: string;
   phone: string;
   profile:UserProfile
 };

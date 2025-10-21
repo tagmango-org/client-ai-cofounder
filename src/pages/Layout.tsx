@@ -109,7 +109,7 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
           },
           userId: "",
           email: "",
-          role: "",
+          role: "user",
           phone: "",
         });
         setAppUserLoading(false);
@@ -155,6 +155,9 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
             profile: profileData.data.profile,
             _id: profileUserId,
             userId: profileUserId,
+            created_date: profileData.data.created_date,
+            updated_date: profileData.data.updated_date,
+
           };
           setCurrentAppUser(appUser);
         }
@@ -171,7 +174,7 @@ export default function Layout({ children, currentPageName }: LayoutProps) {
           },
           userId: "",
           email: "",
-          role: "",
+          role: "user",
           phone: "",
         });
       } finally {
