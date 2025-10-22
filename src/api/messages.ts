@@ -5,7 +5,6 @@ export interface Message {
   role: "user" | "assistant";
   created_date: string;
   metadata?: Record<string, any>;
-  courseDataAvailable?: boolean; // New optional field
 }
 
 export interface CreateMessageRequest {
@@ -13,7 +12,6 @@ export interface CreateMessageRequest {
   content: string;
   role: "user" | "assistant";
   metadata?: Record<string, any>;
-  courseDataAvailable?: boolean; // New optional field
 }
 
 export interface UpdateMessageRequest {

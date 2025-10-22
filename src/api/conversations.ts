@@ -1,4 +1,3 @@
-
 export interface Conversation {
   id: string;
   title: string;
@@ -30,13 +29,16 @@ export const getConversations = async (
   userId: string
 ): Promise<ConversationResponse> => {
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/conversations`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "user-id": userId,
-      },
-    });
+    const response = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/conversations`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "user-id": userId,
+        },
+      }
+    );
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -58,14 +60,17 @@ export const createConversation = async (
   conversationData: CreateConversationRequest
 ): Promise<ConversationResponse> => {
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/conversations`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "user-id": userId,
-      },
-      body: JSON.stringify(conversationData),
-    });
+    const response = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/conversations`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "user-id": userId,
+        },
+        body: JSON.stringify(conversationData),
+      }
+    );
 
     if (!response.ok) {
       const errorData = await response.json();

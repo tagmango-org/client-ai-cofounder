@@ -2,23 +2,8 @@ import React, { useEffect } from "react";
 import { ThemeProvider } from "../components/ThemeProvider";
 import { useUserStore, useCurrentUser, useAppUserLoading } from "../stores/userStore";
 import tagMangoAuth from "../api/auth";
+import { getRefreshTokenFromURL } from "@/utils/helper";
 
-
-const getRefreshTokenFromURL = (): string | null => {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-  
-  try {
-    const urlParams = new URLSearchParams(window.location.search);
-    const refreshToken = urlParams.get('refreshToken') || urlParams.get('accessToken');
-    console.log('🔑 Extracted token from URL:', refreshToken ? 'Token found' : 'No token found');
-    return refreshToken;
-  } catch (error) {
-    console.error("Error extracting token from URL:", error);
-    return null;
-  }
-};
 
 
 interface LayoutContentProps {

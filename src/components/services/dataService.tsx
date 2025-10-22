@@ -34,6 +34,7 @@ import type {
   UpdateUser,
 } from '@/types/dataService';
 import { Phone } from 'lucide-react';
+import { getRefreshTokenFromURL } from '@/utils/helper';
 
 const isRealUser: any = (user: any) => user && user._id !== 'anonymous';
 
@@ -51,7 +52,7 @@ const isTagMangoAuthenticated = (): boolean => {
 const getTagMangoUserId = (): string | null => {
   try {
     // First try to get from TagMango auth service
-    const token = tagMangoAuth.getToken();
+    const token = getRefreshTokenFromURL()
     if (token) {
       // Parse JWT token to extract user ID
       const tokenParts = token.split('.');
