@@ -227,16 +227,74 @@ export default function Chat() {
   const placeholderIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
+  const [isUserAtBottom, setIsUserAtBottom] = useState<boolean>(true);
+  const shouldAutoScrollRef = useRef<boolean>(true);
+  const isScrollingProgrammaticallyRef = useRef<boolean>(false);
+  const userScrolledAwayRef = useRef<boolean>(false);
+  const lastScrollTopRef = useRef<number>(0);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = (smooth: boolean = false) => {
+    if (messagesEndRef.current && chatContainerRef.current) {
+      isScrollingProgrammaticallyRef.current = true;
+      
+      // Direct scroll for more reliable behavior during streaming
+      const container = chatContainerRef.current;
+      const targetScrollTop = container.scrollHeight - container.clientHeight;
+      
+      if (smooth) {
+        messagesEndRef.current.scrollIntoView({ 
+          behavior: "smooth",
+          block: "end"
+        });
+      } else {
+        // Instant scroll for streaming
+        container.scrollTop = targetScrollTop;
+      }
+      
+      // Reset the flag after a short delay
+      setTimeout(() => {
+        isScrollingProgrammaticallyRef.current = false;
+        lastScrollTopRef.current = container.scrollTop;
+      }, 150);
+    }
+  };
+
+  const checkIfUserIsAtBottom = () => {
+    if (!chatContainerRef.current) return true;
+    
+    const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+    const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+    
+    // Consider "at bottom" if within 100px of the bottom
+    return distanceFromBottom < 100;
   };
 
   useEffect(() => {
-    if (!isLoadingMore) {
-      scrollToBottom();
+    // Only auto-scroll if user hasn't manually scrolled away and not loading more
+    if (!isLoadingMore && !userScrolledAwayRef.current) {
+      // Debounce the scroll to avoid conflicts
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      
+      scrollTimeoutRef.current = setTimeout(() => {
+        if (!userScrolledAwayRef.current) {
+          const isAtBottom = checkIfUserIsAtBottom();
+          if (isAtBottom) {
+            // Always use instant scroll during streaming to prevent jank
+            scrollToBottom(false);
+          }
+        }
+      }, 50);
     }
+    
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
   }, [messages, discoveryState.status, showPhaseCompletion, isLoadingMore]);
 
   useEffect(() => {
@@ -259,6 +317,51 @@ export default function Chat() {
       textareaRef.current.focus();
     }
   }, [activeConversation]);
+
+  // Add wheel event listener to detect scroll intent immediately
+  useEffect(() => {
+    const container = chatContainerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (isScrollingProgrammaticallyRef.current) return;
+      
+      const atBottom = checkIfUserIsAtBottom();
+      
+      // If user is scrolling up (negative deltaY), mark them as scrolled away
+      if (e.deltaY < 0) {
+        if (!atBottom) {
+          userScrolledAwayRef.current = true;
+        }
+      } else if (e.deltaY > 0) {
+        // If scrolling down and now at bottom, re-enable auto-scroll
+        // Use setTimeout to check after scroll completes
+        setTimeout(() => {
+          if (checkIfUserIsAtBottom()) {
+            userScrolledAwayRef.current = false;
+          }
+        }, 50);
+      }
+    };
+
+    const handleTouchStart = () => {
+      // On touch start, check if we're not at bottom and mark as potentially scrolling
+      if (!isScrollingProgrammaticallyRef.current) {
+        const atBottom = checkIfUserIsAtBottom();
+        if (!atBottom) {
+          userScrolledAwayRef.current = true;
+        }
+      }
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: true });
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+      container.removeEventListener('touchstart', handleTouchStart);
+    };
+  }, []);
 
   const formatAIResponse = (text: string): string => {
     if (!text) return "";
@@ -506,6 +609,12 @@ export default function Chat() {
     if (!userMessageOverride) {
       setMessage("");
     }
+    
+    // When user sends a message, ensure auto-scroll is enabled
+    setIsUserAtBottom(true);
+    shouldAutoScrollRef.current = true;
+    userScrolledAwayRef.current = false;
+    
     setIsTyping(true);
 
     const userMessageText = userMessageContent;
@@ -763,6 +872,11 @@ export default function Chat() {
   ): Promise<void> => {
     if (isTyping || !activeConversation || isRegenerating) return;
 
+    // When regenerating, ensure auto-scroll is enabled
+    setIsUserAtBottom(true);
+    shouldAutoScrollRef.current = true;
+    userScrolledAwayRef.current = false;
+    
     setIsRegenerating(messageToRegenerate);
 
     try {
@@ -992,6 +1106,12 @@ export default function Chat() {
     setMessages([]);
     setMessagesPage(0);
     setHasMoreMessages(true);
+    
+    // Reset scroll state when switching conversations
+    setIsUserAtBottom(true);
+    shouldAutoScrollRef.current = true;
+    userScrolledAwayRef.current = false;
+    
     setDiscoveryState((prev: DiscoveryState) => ({
       ...prev,
       status: "not_started",
@@ -1193,6 +1313,12 @@ Respond with ONLY a JSON object in this exact format:
 
   const startOrResumeDiscovery = () => {
     setShowGodModeOverlay(false);
+    
+    // Enable auto-scroll for discovery mode
+    setIsUserAtBottom(true);
+    shouldAutoScrollRef.current = true;
+    userScrolledAwayRef.current = false;
+    
     const totalQuestions = DISCOVERY_PHASES.reduce(
       (acc, phase) =>
         acc + (Array.isArray(phase.questions) ? phase.questions.length : 0),
@@ -1241,6 +1367,11 @@ Ready to unlock your unique coaching blueprint?`;
   ): Promise<void> => {
     const { currentPhaseIndex, currentQuestionIndexInPhase, answers } =
       discoveryState;
+
+    // Enable auto-scroll for discovery answers
+    setIsUserAtBottom(true);
+    shouldAutoScrollRef.current = true;
+    userScrolledAwayRef.current = false;
 
     const displayAnswer = Array.isArray(answer) ? answer.join(", ") : answer;
     const userAnswerMessage: ExtendedMessage = {
@@ -1445,6 +1576,28 @@ I now have your complete coaching blueprint and will use it to provide deeply pe
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.target as HTMLDivElement;
+    const currentScrollTop = target.scrollTop;
+    
+    // Check if user is at the bottom
+    const atBottom = checkIfUserIsAtBottom();
+    setIsUserAtBottom(atBottom);
+    
+    // Detect scroll direction and user intent
+    if (!isScrollingProgrammaticallyRef.current) {
+      const scrollingUp = currentScrollTop < lastScrollTopRef.current;
+      
+      if (scrollingUp && !atBottom) {
+        // User is actively scrolling up - STOP auto-scroll immediately
+        userScrolledAwayRef.current = true;
+      } else if (atBottom) {
+        // User has scrolled back to the bottom - resume auto-scroll
+        userScrolledAwayRef.current = false;
+      }
+      
+      lastScrollTopRef.current = currentScrollTop;
+    }
+    
+    // Load older messages if scrolled to top
     if (
       target.scrollTop === 0 &&
       hasMoreMessages &&
