@@ -61,6 +61,11 @@ import {
 import * as dataService from "@/components/services/dataService";
 import { Button } from "@/components/ui/button";
 import {
+  ConfirmationModal,
+  useConfirmationModal,
+} from "@/components/ui/confirmation-modal";
+import { useToast } from "@/components/ui/use-toast";
+import {
   DISCOVERY_PHASES,
   placeholderIdeas,
   thinkingPhrases,
@@ -223,6 +228,27 @@ export default function Chat() {
     null
   );
 
+  // Confirmation modal for various actions
+  const confirmationModal = useConfirmationModal();
+  
+  // Toast notifications
+  const { toast } = useToast();
+
+  // Utility function for auto-dismissing toasts
+  const showAutoDismissToast = (toastConfig: any, duration: number = 3000) => {
+    const toastResult = toast(toastConfig);
+    
+    // Use setTimeout to dismiss after the specified duration
+    const timeoutId = setTimeout(() => {
+      toastResult.dismiss();
+    }, duration);
+    
+    // Store the timeout ID so we can clear it if needed
+    toastResult.timeoutId = timeoutId;
+    
+    return toastResult;
+  };
+
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const placeholderIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -234,25 +260,24 @@ export default function Chat() {
   const lastScrollTopRef = useRef<number>(0);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-
   const scrollToBottom = (smooth: boolean = false) => {
     if (messagesEndRef.current && chatContainerRef.current) {
       isScrollingProgrammaticallyRef.current = true;
-      
+
       // Direct scroll for more reliable behavior during streaming
       const container = chatContainerRef.current;
       const targetScrollTop = container.scrollHeight - container.clientHeight;
-      
+
       if (smooth) {
-        messagesEndRef.current.scrollIntoView({ 
+        messagesEndRef.current.scrollIntoView({
           behavior: "smooth",
-          block: "end"
+          block: "end",
         });
       } else {
         // Instant scroll for streaming
         container.scrollTop = targetScrollTop;
       }
-      
+
       // Reset the flag after a short delay
       setTimeout(() => {
         isScrollingProgrammaticallyRef.current = false;
@@ -263,10 +288,10 @@ export default function Chat() {
 
   const checkIfUserIsAtBottom = () => {
     if (!chatContainerRef.current) return true;
-    
+
     const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
     const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
-    
+
     // Consider "at bottom" if within 100px of the bottom
     return distanceFromBottom < 100;
   };
@@ -278,7 +303,7 @@ export default function Chat() {
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
       }
-      
+
       scrollTimeoutRef.current = setTimeout(() => {
         if (!userScrolledAwayRef.current) {
           const isAtBottom = checkIfUserIsAtBottom();
@@ -289,7 +314,7 @@ export default function Chat() {
         }
       }, 50);
     }
-    
+
     return () => {
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
@@ -325,9 +350,9 @@ export default function Chat() {
 
     const handleWheel = (e: WheelEvent) => {
       if (isScrollingProgrammaticallyRef.current) return;
-      
+
       const atBottom = checkIfUserIsAtBottom();
-      
+
       // If user is scrolling up (negative deltaY), mark them as scrolled away
       if (e.deltaY < 0) {
         if (!atBottom) {
@@ -354,12 +379,14 @@ export default function Chat() {
       }
     };
 
-    container.addEventListener('wheel', handleWheel, { passive: true });
-    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener("wheel", handleWheel, { passive: true });
+    container.addEventListener("touchstart", handleTouchStart, {
+      passive: true,
+    });
 
     return () => {
-      container.removeEventListener('wheel', handleWheel);
-      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener("wheel", handleWheel);
+      container.removeEventListener("touchstart", handleTouchStart);
     };
   }, []);
 
@@ -600,7 +627,14 @@ export default function Chat() {
     if (!content.trim() || !activeConversation || isTyping) return;
 
     if (!currentAppUser) {
-      alert("Please wait for the app to initialize.");
+      confirmationModal.showConfirmation({
+        title: "App Not Ready",
+        description:
+          "Please wait for the app to initialize before sending messages.",
+        variant: "info",
+        confirmText: "OK",
+        onConfirm: () => {},
+      });
       return;
     }
 
@@ -609,12 +643,12 @@ export default function Chat() {
     if (!userMessageOverride) {
       setMessage("");
     }
-    
+
     // When user sends a message, ensure auto-scroll is enabled
     setIsUserAtBottom(true);
     shouldAutoScrollRef.current = true;
     userScrolledAwayRef.current = false;
-    
+
     setIsTyping(true);
 
     const userMessageText = userMessageContent;
@@ -684,29 +718,33 @@ export default function Chat() {
       // Real-time streaming from backend
       let accumulatedRawText = "";
       let hasStartedDisplaying = false;
-      
+
       const response = await InvokeLLM({
         ...llmPayload,
         stream: true,
         onChunk: (chunk: string) => {
           // Accumulate raw text for JSON parsing
           accumulatedRawText += chunk;
-          
+
           // Try to extract ai_response_text from accumulated JSON
           try {
             // Look for ai_response_text in the partial JSON - match everything including incomplete strings
-            const match = accumulatedRawText.match(/"ai_response_text"\s*:\s*"([^"]*)"/);
+            const match = accumulatedRawText.match(
+              /"ai_response_text"\s*:\s*"([^"]*)"/
+            );
             if (!match) {
               // Try to match even if closing quote isn't there yet (for actively streaming text)
-              const partialMatch = accumulatedRawText.match(/"ai_response_text"\s*:\s*"(.*?)(?:"|$)/s);
+              const partialMatch = accumulatedRawText.match(
+                /"ai_response_text"\s*:\s*"(.*?)(?:"|$)/s
+              );
               if (partialMatch && partialMatch[1]) {
                 const decodedText = partialMatch[1]
-                  .replace(/\\n/g, '\n')
-                  .replace(/\\t/g, '\t')
-                  .replace(/\\r/g, '\r')
+                  .replace(/\\n/g, "\n")
+                  .replace(/\\t/g, "\t")
+                  .replace(/\\r/g, "\r")
                   .replace(/\\"/g, '"')
-                  .replace(/\\\\/g, '\\');
-                
+                  .replace(/\\\\/g, "\\");
+
                 hasStartedDisplaying = true;
                 setMessages((prev) =>
                   (Array.isArray(prev) ? prev : []).map((m) =>
@@ -719,12 +757,12 @@ export default function Chat() {
             } else if (match[1]) {
               // Complete match with closing quote
               const decodedText = match[1]
-                .replace(/\\n/g, '\n')
-                .replace(/\\t/g, '\t')
-                .replace(/\\r/g, '\r')
+                .replace(/\\n/g, "\n")
+                .replace(/\\t/g, "\t")
+                .replace(/\\r/g, "\r")
                 .replace(/\\"/g, '"')
-                .replace(/\\\\/g, '\\');
-              
+                .replace(/\\\\/g, "\\");
+
               hasStartedDisplaying = true;
               setMessages((prev) =>
                 (Array.isArray(prev) ? prev : []).map((m) =>
@@ -736,9 +774,9 @@ export default function Chat() {
             }
           } catch (e) {
             // Ignore parsing errors during streaming
-            console.debug('Streaming parse error:', e);
+            console.debug("Streaming parse error:", e);
           }
-        }
+        },
       });
 
       if (response.action === "redirect_to_profile") {
@@ -876,7 +914,7 @@ export default function Chat() {
     setIsUserAtBottom(true);
     shouldAutoScrollRef.current = true;
     userScrolledAwayRef.current = false;
-    
+
     setIsRegenerating(messageToRegenerate);
 
     try {
@@ -905,29 +943,33 @@ export default function Chat() {
 
       // Real-time streaming for regeneration
       let accumulatedRawText = "";
-      
+
       const response = await InvokeLLM({
         ...llmPayload,
         stream: true,
         onChunk: (chunk: string) => {
           // Accumulate raw text for JSON parsing
           accumulatedRawText += chunk;
-          
+
           // Try to extract ai_response_text from accumulated JSON
           try {
             // Look for ai_response_text in the partial JSON - match everything including incomplete strings
-            const match = accumulatedRawText.match(/"ai_response_text"\s*:\s*"([^"]*)"/);
+            const match = accumulatedRawText.match(
+              /"ai_response_text"\s*:\s*"([^"]*)"/
+            );
             if (!match) {
               // Try to match even if closing quote isn't there yet (for actively streaming text)
-              const partialMatch = accumulatedRawText.match(/"ai_response_text"\s*:\s*"(.*?)(?:"|$)/s);
+              const partialMatch = accumulatedRawText.match(
+                /"ai_response_text"\s*:\s*"(.*?)(?:"|$)/s
+              );
               if (partialMatch && partialMatch[1]) {
                 const decodedText = partialMatch[1]
-                  .replace(/\\n/g, '\n')
-                  .replace(/\\t/g, '\t')
-                  .replace(/\\r/g, '\r')
+                  .replace(/\\n/g, "\n")
+                  .replace(/\\t/g, "\t")
+                  .replace(/\\r/g, "\r")
                   .replace(/\\"/g, '"')
-                  .replace(/\\\\/g, '\\');
-                
+                  .replace(/\\\\/g, "\\");
+
                 setMessages((prev) =>
                   (Array.isArray(prev) ? prev : []).map((m) =>
                     m.id === messageToRegenerate.id
@@ -939,12 +981,12 @@ export default function Chat() {
             } else if (match[1]) {
               // Complete match with closing quote
               const decodedText = match[1]
-                .replace(/\\n/g, '\n')
-                .replace(/\\t/g, '\t')
-                .replace(/\\r/g, '\r')
+                .replace(/\\n/g, "\n")
+                .replace(/\\t/g, "\t")
+                .replace(/\\r/g, "\r")
                 .replace(/\\"/g, '"')
-                .replace(/\\\\/g, '\\');
-              
+                .replace(/\\\\/g, "\\");
+
               setMessages((prev) =>
                 (Array.isArray(prev) ? prev : []).map((m) =>
                   m.id === messageToRegenerate.id
@@ -955,9 +997,9 @@ export default function Chat() {
             }
           } catch (e) {
             // Ignore parsing errors during streaming
-            console.debug('Streaming parse error:', e);
+            console.debug("Streaming parse error:", e);
           }
-        }
+        },
       });
 
       if (response.action === "redirect_to_profile") {
@@ -1106,12 +1148,12 @@ export default function Chat() {
     setMessages([]);
     setMessagesPage(0);
     setHasMoreMessages(true);
-    
+
     // Reset scroll state when switching conversations
     setIsUserAtBottom(true);
     shouldAutoScrollRef.current = true;
     userScrolledAwayRef.current = false;
-    
+
     setDiscoveryState((prev: DiscoveryState) => ({
       ...prev,
       status: "not_started",
@@ -1124,39 +1166,54 @@ export default function Chat() {
   const handleDeleteConversation = async (
     conversationId: string
   ): Promise<void> => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this conversation and all its messages? This action cannot be undone?"
-      )
-    ) {
-      return;
-    }
+    confirmationModal.showConfirmation({
+      title: "Delete Conversation",
+      description:
+        "Are you sure you want to delete this conversation and all its messages? This action cannot be undone.",
+      variant: "destructive",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      onConfirm: async () => {
+        try {
+          await dataService.deleteConversation(currentAppUser, {
+            conversationId,
+          });
 
-    try {
-      await dataService.deleteConversation(currentAppUser, {
-        conversationId,
-      });
+          const newCache = { ...messageCache };
+          delete newCache[conversationId];
+          setMessageCache(newCache);
 
-      const newCache = { ...messageCache };
-      delete newCache[conversationId];
-      setMessageCache(newCache);
+          const remainingConversations = conversations.filter(
+            (c: Conversation) => c.id !== conversationId
+          );
+          setConversations(remainingConversations);
 
-      const remainingConversations = conversations.filter(
-        (c: Conversation) => c.id !== conversationId
-      );
-      setConversations(remainingConversations);
+          if (activeConversation?.id === conversationId) {
+            if (remainingConversations.length > 0) {
+              await handleSelectConversation(remainingConversations[0]);
+            } else {
+              await handleNewConversation();
+            }
+          }
 
-      if (activeConversation?.id === conversationId) {
-        if (remainingConversations.length > 0) {
-          await handleSelectConversation(remainingConversations[0]);
-        } else {
-          await handleNewConversation();
+          // Show success toast with auto-dismiss
+          showAutoDismissToast({
+            title: "Conversation Deleted",
+            description: "The conversation has been successfully deleted.",
+            variant: "success",
+          }, 3000);
+        } catch (error) {
+          console.error("Failed to delete conversation:", error);
+          confirmationModal.showConfirmation({
+            title: "Delete Failed",
+            description: "Failed to delete conversation. Please try again.",
+            variant: "warning",
+            confirmText: "OK",
+            onConfirm: () => {},
+          });
         }
-      }
-    } catch (error) {
-      console.error("Failed to delete conversation:", error);
-      alert("Failed to delete conversation. Please try again.");
-    }
+      },
+    });
   };
 
   const handleStartRename = (conversation: Conversation) => {
@@ -1200,7 +1257,13 @@ export default function Chat() {
       }
     } catch (error) {
       console.error("Failed to rename conversation:", error);
-      alert("Failed to rename conversation. Please try again.");
+      confirmationModal.showConfirmation({
+        title: "Rename Failed",
+        description: "Failed to rename conversation. Please try again.",
+        variant: "warning",
+        confirmText: "OK",
+        onConfirm: () => {},
+      });
     } finally {
       handleCancelRename();
     }
@@ -1288,19 +1351,6 @@ Respond with ONLY a JSON object in this exact format:
       )
       .join("\n");
 
-    const synthesisPrompt = `Based on the comprehensive discovery answers below, create a strategic coaching profile synthesis in the exact JSON format specified:
-
-${answeredQuestions}
-
-Respond with ONLY a JSON object in this exact format:
-{
-    "niche_clarity": "Their unique positioning (1-2 sentences)",
-    "personality_type": "Their coaching style and approach (1-2 sentences)",
-    "core_motivation": "What drives them (1-2 sentences)",
-    "primary_strength": "Their superpower (1-2 sentences)",
-    "growth_edge": "Main area for development (1-2 sentences)",
-    "business_stage": "Current phase and next evolution (1-2 sentences)"
-}`;
 
     try {
       const response = await GenerateProfileSynthesis({ answers });
@@ -1313,12 +1363,12 @@ Respond with ONLY a JSON object in this exact format:
 
   const startOrResumeDiscovery = () => {
     setShowGodModeOverlay(false);
-    
+
     // Enable auto-scroll for discovery mode
     setIsUserAtBottom(true);
     shouldAutoScrollRef.current = true;
     userScrolledAwayRef.current = false;
-    
+
     const totalQuestions = DISCOVERY_PHASES.reduce(
       (acc, phase) =>
         acc + (Array.isArray(phase.questions) ? phase.questions.length : 0),
@@ -1577,15 +1627,15 @@ I now have your complete coaching blueprint and will use it to provide deeply pe
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.target as HTMLDivElement;
     const currentScrollTop = target.scrollTop;
-    
+
     // Check if user is at the bottom
     const atBottom = checkIfUserIsAtBottom();
     setIsUserAtBottom(atBottom);
-    
+
     // Detect scroll direction and user intent
     if (!isScrollingProgrammaticallyRef.current) {
       const scrollingUp = currentScrollTop < lastScrollTopRef.current;
-      
+
       if (scrollingUp && !atBottom) {
         // User is actively scrolling up - STOP auto-scroll immediately
         userScrolledAwayRef.current = true;
@@ -1593,10 +1643,10 @@ I now have your complete coaching blueprint and will use it to provide deeply pe
         // User has scrolled back to the bottom - resume auto-scroll
         userScrolledAwayRef.current = false;
       }
-      
+
       lastScrollTopRef.current = currentScrollTop;
     }
-    
+
     // Load older messages if scrolled to top
     if (
       target.scrollTop === 0 &&
@@ -1670,6 +1720,17 @@ I now have your complete coaching blueprint and will use it to provide deeply pe
         startOrResumeDiscovery={startOrResumeDiscovery}
         onGodModeClick={handleGodModeClick}
         conversationsLoading={conversationsLoading}
+      />
+
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={confirmationModal.hideConfirmation}
+        onConfirm={confirmationModal.handleConfirm}
+        title={confirmationModal.config.title}
+        description={confirmationModal.config.description}
+        confirmText={confirmationModal.config.confirmText}
+        cancelText={confirmationModal.config.cancelText}
+        variant={confirmationModal.config.variant}
       />
 
       {renamingConversation && (
