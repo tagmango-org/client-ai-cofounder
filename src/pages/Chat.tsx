@@ -160,6 +160,7 @@ const isRealUser = (user: User | null): user is User =>
   user !== null && user._id !== "anonymous";
 
 export default function Chat() {
+  console.log("test :_>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
   const [message, setMessage] = useState<string>("");
   const [messages, setMessages] = useState<ExtendedMessage[]>([]);
   const [isTyping, setIsTyping] = useState<boolean>(false);
