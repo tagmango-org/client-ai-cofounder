@@ -2,8 +2,9 @@ name: Dev to Amazon Amplify
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches:
+      - main
+
   workflow_dispatch:
 
 concurrency:
