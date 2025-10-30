@@ -60,10 +60,7 @@ import {
 } from "../stores/userStore";
 import * as dataService from "@/components/services/dataService";
 import { Button } from "@/components/ui/button";
-import {
-  ConfirmationModal,
-  useConfirmationModal,
-} from "@/components/ui/confirmation-modal";
+import { useConfirmationModal } from "@/contexts/ConfirmationModalContext";
 import { useToast } from "@/components/ui/use-toast";
 import {
   DISCOVERY_PHASES,
@@ -228,8 +225,8 @@ export default function Chat() {
     null
   );
 
-  // Confirmation modal for various actions
-  const confirmationModal = useConfirmationModal();
+  // Confirmation modal for various actions (global)
+  const { showConfirmation } = useConfirmationModal();
   
   // Toast notifications
   const { toast } = useToast();
@@ -627,7 +624,7 @@ export default function Chat() {
     if (!content.trim() || !activeConversation || isTyping) return;
 
     if (!currentAppUser) {
-      confirmationModal.showConfirmation({
+      showConfirmation({
         title: "App Not Ready",
         description:
           "Please wait for the app to initialize before sending messages.",
@@ -1166,7 +1163,7 @@ export default function Chat() {
   const handleDeleteConversation = async (
     conversationId: string
   ): Promise<void> => {
-    confirmationModal.showConfirmation({
+    showConfirmation({
       title: "Delete Conversation",
       description:
         "Are you sure you want to delete this conversation and all its messages? This action cannot be undone.",
@@ -1204,7 +1201,7 @@ export default function Chat() {
           }, 3000);
         } catch (error) {
           console.error("Failed to delete conversation:", error);
-          confirmationModal.showConfirmation({
+          showConfirmation({
             title: "Delete Failed",
             description: "Failed to delete conversation. Please try again.",
             variant: "warning",
@@ -1257,7 +1254,7 @@ export default function Chat() {
       }
     } catch (error) {
       console.error("Failed to rename conversation:", error);
-      confirmationModal.showConfirmation({
+      showConfirmation({
         title: "Rename Failed",
         description: "Failed to rename conversation. Please try again.",
         variant: "warning",
@@ -1720,17 +1717,6 @@ I now have your complete coaching blueprint and will use it to provide deeply pe
         startOrResumeDiscovery={startOrResumeDiscovery}
         onGodModeClick={handleGodModeClick}
         conversationsLoading={conversationsLoading}
-      />
-
-      <ConfirmationModal
-        isOpen={confirmationModal.isOpen}
-        onClose={confirmationModal.hideConfirmation}
-        onConfirm={confirmationModal.handleConfirm}
-        title={confirmationModal.config.title}
-        description={confirmationModal.config.description}
-        confirmText={confirmationModal.config.confirmText}
-        cancelText={confirmationModal.config.cancelText}
-        variant={confirmationModal.config.variant}
       />
 
       {renamingConversation && (

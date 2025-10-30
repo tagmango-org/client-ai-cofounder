@@ -18,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { PlusCircle, Edit, Trash2, BookOpen, Upload, FileText, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { UploadFile, ExtractDataFromUploadedFile } from '@/api/integrations';
+import { useConfirmationModal } from '@/contexts/ConfirmationModalContext';
 
 export default function KnowledgeBase() {
   const [articles, setArticles] = useState<KnowledgeArticle[]>([]);
@@ -28,6 +29,9 @@ export default function KnowledgeBase() {
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadStatusMessage, setUploadStatusMessage] = useState<string>('');
+  
+  // Global confirmation modal
+  const { showConfirmation } = useConfirmationModal();
 
   const fetchArticles = async (): Promise<void> => {
     setIsLoading(true);
@@ -59,10 +63,28 @@ export default function KnowledgeBase() {
   };
 
   const handleDelete = async (articleId: string): Promise<void> => {
-    if (window.confirm('Are you sure you want to delete this article?')) {
-      await KnowledgeArticleEntity.delete(articleId);
-      fetchArticles();
-    }
+    showConfirmation({
+      title: 'Delete Article',
+      description: 'Are you sure you want to delete this article? This action cannot be undone.',
+      variant: 'destructive',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        try {
+          await KnowledgeArticleEntity.delete(articleId);
+          fetchArticles();
+        } catch (error) {
+          console.error('Failed to delete article:', error);
+          showConfirmation({
+            title: 'Delete Failed',
+            description: 'Failed to delete the article. Please try again.',
+            variant: 'warning',
+            confirmText: 'OK',
+            onConfirm: () => {},
+          });
+        }
+      },
+    });
   };
 
   const handleFormChange: FormChangeHandler = (e) => {
